@@ -595,7 +595,7 @@ function lsLoad(k){ try{ const v=localStorage.getItem('homeid_'+k); return v?JSO
 // Convert array to object keyed by id (Firebase handles objects better than arrays)
 function arrToObj(arr){ const o={}; arr.forEach(x=>{ o[x.id]=x; }); return o; }
 // Convert object back to array
-function objToArr(obj){ if(!obj) return []; if(Array.isArray(obj)) return obj.map(x=>({...x,id:Number(x.id)})); return Object.values(obj).map(x=>({...x,id:Number(x.id)})); }
+function objToArr(obj){ if(!obj) return []; if(Array.isArray(obj)) return obj; return Object.values(obj); }
 
 async function saveDB() {
   if (firebaseReady && firebaseDB) {
@@ -703,7 +703,7 @@ function fmtNum(n){ return Number(n).toLocaleString(); }
 function calcWages(w, a){ return ((Number(a.days)||1)*w.fee)+((Number(a.ot)||0)*w.ot_rate); }
 function getCategories(){ return ['all',...new Set(DB.workers.filter(w=>w.status==='active').map(w=>w.cat))]; }
 function getProjAtt(pid){ if(!DB.attendance[pid]) DB.attendance[pid]={}; return DB.attendance[pid]; }
-function getWorkerAtt(pid,wid){ const pa=getProjAtt(pid); if(!pa[wid]) pa[wid]={present:false,days:1,ot:0,paid:null,altmomo:''}; return pa[wid]; }
+function getWorkerAtt(pid,wid){ wid=String(wid); const pa=getProjAtt(pid); if(!pa[wid]) pa[wid]={present:false,days:1,ot:0,paid:null,altmomo:''}; return pa[wid]; }
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
 function showModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
@@ -792,7 +792,7 @@ function renderAttList(){
   const workers=getFilteredWorkers(attCatFilter,'att-search');
   const pa=getProjAtt(currentProjId);
   let tp=0,ta=0,tot=0,tot_ot=0;
-  DB.workers.filter(w=>w.status==='active').forEach(w=>{ const a=pa[w.id]; if(a&&a.present){tp++;tot+=calcWages(w,a);tot_ot+=Number(a.ot)||0;}else ta++; });
+  DB.workers.filter(w=>w.status==='active').forEach(w=>{ const a=pa[String(w.id)]; if(a&&a.present){tp++;tot+=calcWages(w,a);tot_ot+=Number(a.ot)||0;}else ta++; });
   document.getElementById('att-stat-p').textContent=tp;
   document.getElementById('att-stat-a').textContent=ta;
   document.getElementById('att-stat-ot').textContent=tot_ot;
@@ -800,7 +800,7 @@ function renderAttList(){
   const el=document.getElementById('att-list');
   if(!workers.length){ el.innerHTML=`<div class="empty"><div class="empty-sub">No workers match filter.</div></div>`; return; }
   el.innerHTML=workers.map(w=>{
-    const a=getWorkerAtt(currentProjId,w.id);
+    const a=getWorkerAtt(currentProjId,String(w.id));
     const wages=a.present?calcWages(w,a):0;
     return `<div class="worker-card${a.present?' present':''}" onclick="openAttDetail(${w.id})">
       <div class="avatar" style="background:${avatarColor(w.cat)};color:${avatarTextColor(w.cat)}">${initials(w.name)}</div>
@@ -813,26 +813,40 @@ function renderAttList(){
   }).join('');
 }
 function toggleWorker(wid,v){
-  wid=Number(wid);
+  wid=String(wid);
   const a=getWorkerAtt(currentProjId,wid);
   a.present=v; if(v&&!a.days) a.days=1;
   saveDB(); renderAttList();
 }
 function openAttDetail(wid){
-  wid=Number(wid);
-  const w=DB.workers.find(x=>Number(x.id)===wid);
+  const w=DB.workers.find(x=>String(x.id)===String(wid));
   if(!w){ toast('Worker not found — try refreshing'); return; }
-  const a=getWorkerAtt(currentProjId,wid);
-  attDetailWorkerId=wid;
+  const a=getWorkerAtt(currentProjId,String(wid));
+  attDetailWorkerId=String(wid);
   document.getElementById('ad-name').textContent=w.name;
   const wages=calcWages(w,a);
-  const paid=a.paid!=null?a.paid:wages;
+  // paid status: null = not set (treat as unpaid), number = amount paid
+  const isPaid = a.paid!=null && a.paid>0;
+  const paidAmt = a.paid!=null ? a.paid : 0;
   document.getElementById('ad-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
       <div class="input-group"><label>Days worked</label><input class="input-field" id="ad-days" type="number" min="1" max="31" value="${a.days||1}"></div>
       <div class="input-group"><label>OT hours</label><input class="input-field" id="ad-ot" type="number" min="0" step="0.5" value="${a.ot||0}"></div>
-      <div class="input-group"><label>Total wages</label><input class="input-field" id="ad-wages" value="${fmtNum(wages)}" disabled style="color:var(--green2);font-weight:600"></div>
-      <div class="input-group"><label>Paid (RWF)</label><input class="input-field" id="ad-paid" type="number" min="0" value="${paid}"></div>
+    </div>
+    <div style="background:var(--green4);border-radius:var(--radius);padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:var(--muted)">Total wages</span>
+      <span id="ad-wages" style="font-size:18px;font-weight:700;color:var(--green2);font-family:'DM Mono',monospace">${fmtNum(wages)} RWF</span>
+    </div>
+    <div class="input-group" style="margin-bottom:6px"><label>Payment status</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button id="btn-unpaid" onclick="setPayStatus('unpaid')" style="padding:12px;border-radius:var(--radius-sm);border:2px solid ${!isPaid?'var(--red)':'var(--border)'};background:${!isPaid?'var(--red2)':'var(--surface)'};color:${!isPaid?'var(--red)':'var(--muted)'};font-size:14px;font-weight:600;cursor:pointer;">✗ Unpaid</button>
+        <button id="btn-paid" onclick="setPayStatus('paid')" style="padding:12px;border-radius:var(--radius-sm);border:2px solid ${isPaid?'var(--green2)':'var(--border)'};background:${isPaid?'var(--green4)':'var(--surface)'};color:${isPaid?'var(--green2)':'var(--muted)'};font-size:14px;font-weight:600;cursor:pointer;">✓ Paid</button>
+      </div>
+    </div>
+    <div id="paid-amount-row" class="input-group" style="display:${isPaid?'block':'none'}">
+      <label>Amount paid (RWF)</label>
+      <input class="input-field" id="ad-paid" type="number" min="0" value="${isPaid?paidAmt:wages}" placeholder="Enter amount paid">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Leave as total wages if fully paid via MoMo</div>
     </div>
     <div class="input-group"><label>Alt. MoMo name</label><input class="input-field" id="ad-altmomo" value="${a.altmomo||w.altmomo||'N/A'}"></div>
     <div class="kv-row"><span class="kv-key">MoMo number</span><span class="kv-val" style="font-family:'DM Mono',monospace">${w.momo}</span></div>`;
@@ -840,24 +854,49 @@ function openAttDetail(wid){
   const upd=()=>{
     const days=Number(document.getElementById('ad-days').value)||1;
     const ot=Number(document.getElementById('ad-ot').value)||0;
-    document.getElementById('ad-wages').value=fmtNum(days*w.fee+ot*w.ot_rate);
+    const w2=calcWages({fee:w.fee,ot_rate:w.ot_rate},{days,ot});
+    document.getElementById('ad-wages').textContent=fmtNum(days*w.fee+ot*w.ot_rate)+' RWF';
+    const paidInput=document.getElementById('ad-paid');
+    if(paidInput) paidInput.value=days*w.fee+ot*w.ot_rate;
   };
   setTimeout(()=>{ document.getElementById('ad-days').oninput=upd; document.getElementById('ad-ot').oninput=upd; },50);
   showModal('modal-att-detail');
 }
+function setPayStatus(status){
+  const paidRow=document.getElementById('paid-amount-row');
+  const btnPaid=document.getElementById('btn-paid');
+  const btnUnpaid=document.getElementById('btn-unpaid');
+  if(status==='paid'){
+    paidRow.style.display='block';
+    btnPaid.style.border='2px solid var(--green2)'; btnPaid.style.background='var(--green4)'; btnPaid.style.color='var(--green2)';
+    btnUnpaid.style.border='2px solid var(--border)'; btnUnpaid.style.background='var(--surface)'; btnUnpaid.style.color='var(--muted)';
+  } else {
+    paidRow.style.display='none';
+    btnUnpaid.style.border='2px solid var(--red)'; btnUnpaid.style.background='var(--red2)'; btnUnpaid.style.color='var(--red)';
+    btnPaid.style.border='2px solid var(--border)'; btnPaid.style.background='var(--surface)'; btnPaid.style.color='var(--muted)';
+  }
+}
 function saveAttDetail(){
-  attDetailWorkerId=Number(attDetailWorkerId);
+  attDetailWorkerId=String(attDetailWorkerId);
   const a=getWorkerAtt(currentProjId,attDetailWorkerId);
-  const w=DB.workers.find(x=>Number(x.id)===attDetailWorkerId);
+  const w=DB.workers.find(x=>String(x.id)===attDetailWorkerId);
   a.days=Number(document.getElementById('ad-days').value)||1;
   a.ot=Number(document.getElementById('ad-ot').value)||0;
   const wages=calcWages(w,a);
-  a.paid=Number(document.getElementById('ad-paid').value)??wages;
+  // Check which payment status is active
+  const btnPaid=document.getElementById('btn-paid');
+  const isPaid = btnPaid && btnPaid.style.color.includes('green') || btnPaid.style.border.includes('green2') || btnPaid.style.background!='var(--surface)';
+  const paidInput=document.getElementById('ad-paid');
+  if(paidInput && paidInput.closest('#paid-amount-row') && document.getElementById('paid-amount-row').style.display!=='none'){
+    a.paid=Number(paidInput.value)||wages;
+  } else {
+    a.paid=0;
+  }
   a.altmomo=document.getElementById('ad-altmomo').value;
   saveDB(); closeModal('modal-att-detail'); renderAttList(); toast('Saved ✓');
 }
-function markAllVisible(){ getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ const a=getWorkerAtt(currentProjId,w.id); a.present=true; if(!a.days)a.days=1; }); saveDB(); renderAttList(); toast('All marked present'); }
-function clearVisible(){ if(!confirm('Clear attendance for visible workers?'))return; getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ DB.attendance[currentProjId][w.id]={present:false,days:1,ot:0,paid:null,altmomo:''}; }); saveDB(); renderAttList(); }
+function markAllVisible(){ getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ const a=getWorkerAtt(currentProjId,String(w.id)); a.present=true; if(!a.days)a.days=1; }); saveDB(); renderAttList(); toast('All marked present'); }
+function clearVisible(){ if(!confirm('Clear attendance for visible workers?'))return; getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ DB.attendance[currentProjId][String(w.id)]={present:false,days:1,ot:0,paid:null,altmomo:''}; }); saveDB(); renderAttList(); }
 
 // ═══════════════════════════════════════════════════
 //  WORKERS
