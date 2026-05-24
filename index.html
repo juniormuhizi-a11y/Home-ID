@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Home ID Payroll</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -513,30 +515,102 @@ let DB = {
 };
 
 // ═══════════════════════════════════════════════════
-//  CLOUD STORAGE (window.storage API)
+//  FIREBASE REALTIME DATABASE — Cross-device sync
+//  Replace the firebaseConfig below with your own
+//  from Firebase Console → Project Settings → Your apps
 // ═══════════════════════════════════════════════════
-async function cloudSave(key, val) {
-  try { await window.storage.set(key, JSON.stringify(val)); } catch(e){ lsSave(key,val); }
+const firebaseConfig = {
+  apiKey: "AIzaSyBtL_X_0Mf00chae17fG-vhhFe1OiXzihg",
+  authDomain: "homeid-payroll.firebaseapp.com",
+  databaseURL: "https://homeid-payroll-default-rtdb.firebaseio.com",
+  projectId: "homeid-payroll",
+  storageBucket: "homeid-payroll.firebasestorage.app",
+  messagingSenderId: "912567022471",
+  appId: "1:912567022471:web:5326c0f415b599a2905922",
+  measurementId: "G-1ZPSMM0741"
+};
+
+let firebaseDB = null;
+let firebaseReady = false;
+
+function initFirebase() {
+  try {
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PASTE_YOUR_API_KEY_HERE") {
+      console.warn("Firebase not configured — using localStorage fallback");
+      firebaseReady = false;
+      return;
+    }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    firebaseDB = firebase.database();
+    firebaseReady = true;
+    // Listen for real-time changes from other devices
+    firebaseDB.ref('homeid').on('value', snapshot => {
+      const data = snapshot.val();
+      if (!data) return;
+      let changed = false;
+      if (data.workers) { DB.workers = data.workers; changed = true; }
+      if (data.projects) { DB.projects = data.projects; changed = true; }
+      if (data.attendance) { DB.attendance = data.attendance; changed = true; }
+      if (data.settings) { DB.settings = { ...DB.settings, ...data.settings }; changed = true; }
+      // Re-render the current screen silently if data changed from another device
+      if (changed && currentUser) {
+        if (currentScreen === 'dash') renderDash();
+        else if (currentScreen === 'att') renderAttList();
+        else if (currentScreen === 'payroll') renderPayrollList();
+        else if (currentScreen === 'workers') renderWorkers();
+      }
+    });
+    console.log("Firebase connected ✓");
+  } catch(e) {
+    console.warn("Firebase init failed, using localStorage:", e);
+    firebaseReady = false;
+  }
 }
-async function cloudLoad(key) {
-  try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; }
-  catch(e){ return lsLoad(key); }
-}
+
+// localStorage fallback
 function lsSave(k,v){ try{ localStorage.setItem('homeid_'+k, JSON.stringify(v)); }catch(e){} }
 function lsLoad(k){ try{ const v=localStorage.getItem('homeid_'+k); return v?JSON.parse(v):null; }catch(e){return null;} }
 
 async function saveDB() {
-  await cloudSave('workers', DB.workers);
-  await cloudSave('projects', DB.projects);
-  await cloudSave('attendance', DB.attendance);
-  await cloudSave('settings', DB.settings);
+  if (firebaseReady && firebaseDB) {
+    try {
+      await firebaseDB.ref('homeid').update({
+        workers: DB.workers,
+        projects: DB.projects,
+        attendance: DB.attendance,
+        settings: DB.settings
+      });
+      return;
+    } catch(e) { console.warn("Firebase save failed, falling back:", e); }
+  }
+  // fallback to localStorage
+  lsSave('workers', DB.workers);
+  lsSave('projects', DB.projects);
+  lsSave('attendance', DB.attendance);
+  lsSave('settings', DB.settings);
 }
+
 async function loadDB() {
-  const w = await cloudLoad('workers');
-  const p = await cloudLoad('projects');
-  const a = await cloudLoad('attendance');
-  const s = await cloudLoad('settings');
-  if(w) DB.workers = w; else { DB.workers = DEFAULT_WORKERS.map(x=>({...x})); await cloudSave('workers',DB.workers); }
+  if (firebaseReady && firebaseDB) {
+    try {
+      const snap = await firebaseDB.ref('homeid').get();
+      const data = snap.val();
+      if (data) {
+        if (data.workers) DB.workers = data.workers;
+        else { DB.workers = DEFAULT_WORKERS.map(x=>({...x})); await saveDB(); }
+        if (data.projects) DB.projects = data.projects;
+        if (data.attendance) DB.attendance = data.attendance;
+        if (data.settings) DB.settings = { ...DB.settings, ...data.settings };
+        return;
+      }
+    } catch(e) { console.warn("Firebase load failed, falling back:", e); }
+  }
+  // fallback to localStorage
+  const w = lsLoad('workers');
+  const p = lsLoad('projects');
+  const a = lsLoad('attendance');
+  const s = lsLoad('settings');
+  if(w) DB.workers = w; else { DB.workers = DEFAULT_WORKERS.map(x=>({...x})); lsSave('workers',DB.workers); }
   if(p) DB.projects = p;
   if(a) DB.attendance = a;
   if(s) DB.settings = {...DB.settings,...s};
@@ -914,7 +988,24 @@ function renderPayrollList(){
 // ═══════════════════════════════════════════════════
 function renderSettings(){
   const sheetsCfg = DB.settings.sheetsWebhook||'';
+  // Show Firebase connection status
+  setTimeout(()=>{
+    const card = document.getElementById('firebase-status-card');
+    const txt = document.getElementById('firebase-status-text');
+    if (!card || !txt) return;
+    if (firebaseReady) {
+      card.style.borderLeftColor = '#0f9d58';
+      txt.innerHTML = '<span style="color:#0f9d58;font-weight:700">🟢 Connected</span> — data syncs instantly across all your devices.';
+    } else {
+      card.style.borderLeftColor = '#e8a020';
+      txt.innerHTML = '<span style="color:#e8a020;font-weight:700">🟡 Not configured</span> — add your Firebase config in the HTML file to enable cross-device sync. Data is saved locally for now.';
+    }
+  }, 100);
   document.getElementById('settings-content').innerHTML=`
+    <div class="sec-lbl">🔥 Firebase Sync Status</div>
+    <div class="card" id="firebase-status-card" style="border-left:3px solid #ccc">
+      <div id="firebase-status-text" style="font-size:13px;color:var(--muted)">Checking connection…</div>
+    </div>
     <div class="sec-lbl">☁ Google Sheets Sync</div>
     <div class="card" style="border-left:3px solid #0f9d58">
       <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Paste your Apps Script Web App URL below. Once set, use <b>☁ Sync to Google Sheets</b> on any period to push payroll data to your sheet instantly.</div>
@@ -1114,6 +1205,7 @@ async function syncPeriodToSheets(pid) {
 //  INIT
 // ═══════════════════════════════════════════════════
 (async()=>{
+  initFirebase();
   await loadDB();
   showScreen('pin');
 })();
