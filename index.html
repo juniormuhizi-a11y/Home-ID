@@ -460,50 +460,71 @@ let attDetailWorkerId = null;
 
 // ── Default worker list (seed data) ──
 const DEFAULT_WORKERS = [
-  {id:1,name:"Eric Tuyishime",cat:"Technician",fee:15000,ot_rate:2000,momo:"0798691392",altmomo:"N/A",status:"active"},
-  {id:2,name:"Nsengiyumva Fiston",cat:"Technician",fee:15000,ot_rate:2000,momo:"0788889628",altmomo:"N/A",status:"active"},
-  {id:3,name:"Havugimana",cat:"Welder",fee:20000,ot_rate:2000,momo:"0785434717",altmomo:"N/A",status:"active"},
-  {id:4,name:"Turikumwenayo Enock",cat:"Welder",fee:20000,ot_rate:2000,momo:"0782329467",altmomo:"N/A",status:"active"},
-  {id:5,name:"Gabriel Tuyihorane",cat:"Welder",fee:20000,ot_rate:2000,momo:"0789415160",altmomo:"N/A",status:"active"},
-  {id:6,name:"Rizinde Fabien",cat:"Welder",fee:20000,ot_rate:2000,momo:"0784505201",altmomo:"N/A",status:"active"},
-  {id:7,name:"Sibomana Eric",cat:"Electrician",fee:20000,ot_rate:2000,momo:"0789683824",altmomo:"N/A",status:"active"},
-  {id:8,name:"Twahirwa Kenny",cat:"S.Technician",fee:10000,ot_rate:1667,momo:"0791965641",altmomo:"N/A",status:"active"},
-  {id:9,name:"Mugisha Jean De Dieu",cat:"S.Technician",fee:6000,ot_rate:1000,momo:"0791388165",altmomo:"N/A",status:"active"},
-  {id:10,name:"Irakarama Laurent",cat:"Technician",fee:15000,ot_rate:2000,momo:"0782407368",altmomo:"N/A",status:"active"},
-  {id:11,name:"Elie Manishimwe",cat:"Technician",fee:15000,ot_rate:2000,momo:"0780842825",altmomo:"N/A",status:"active"},
-  {id:12,name:"Butera Eric",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786208334",altmomo:"N/A",status:"active"},
-  {id:13,name:"Muhire Jean Claude",cat:"Technician",fee:15000,ot_rate:2000,momo:"0795611187",altmomo:"N/A",status:"active"},
-  {id:14,name:"Nkunzurwanda",cat:"Technician",fee:15000,ot_rate:2000,momo:"0782881119",altmomo:"N/A",status:"active"},
-  {id:15,name:"Ishimwe Samuel",cat:"Technician",fee:15000,ot_rate:2000,momo:"0798874205",altmomo:"N/A",status:"active"},
-  {id:16,name:"Kagame Claude",cat:"Technician",fee:15000,ot_rate:2000,momo:"0784008103",altmomo:"N/A",status:"active"},
-  {id:17,name:"Ntahobari Felecien",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786262910",altmomo:"N/A",status:"active"},
-  {id:18,name:"Ntakirutimana Faustin",cat:"Technician",fee:15000,ot_rate:2000,momo:"0792082787",altmomo:"N/A",status:"active"},
-  {id:19,name:"Nsengimana Celestin",cat:"Helper",fee:6000,ot_rate:1000,momo:"0780533352",altmomo:"N/A",status:"active"},
-  {id:20,name:"Dufitumukiza David",cat:"Helper",fee:6000,ot_rate:1000,momo:"0788973268",altmomo:"N/A",status:"active"},
-  {id:21,name:"Iradukunda Elissa",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782583179",altmomo:"N/A",status:"active"},
-  {id:22,name:"Nsengiyumva Celestin",cat:"Helper",fee:6000,ot_rate:1000,momo:"0785297427",altmomo:"N/A",status:"active"},
-  {id:23,name:"Manishimwe Jean Claude",cat:"Helper",fee:6000,ot_rate:1000,momo:"0798583503",altmomo:"Irakoze Lea",status:"active"},
-  {id:24,name:"Rwabukumba",cat:"Helper",fee:6000,ot_rate:1000,momo:"0789671670",altmomo:"N/A",status:"active"},
-  {id:25,name:"Ndayisenga Emmanuel",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782502732",altmomo:"N/A",status:"active"},
-  {id:26,name:"Bimenyimana Epimake",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782399446",altmomo:"N/A",status:"active"},
-  {id:27,name:"Niyodusenga Thierry",cat:"Helper",fee:6000,ot_rate:1000,momo:"0790041143",altmomo:"N/A",status:"active"},
-  {id:28,name:"Niyonkuru Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792568242",altmomo:"N/A",status:"active"},
-  {id:29,name:"Turayisaba Eric",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782961232",altmomo:"N/A",status:"active"},
-  {id:30,name:"Tushabe Ramadhan",cat:"Helper",fee:15000,ot_rate:2000,momo:"0796829524",altmomo:"N/A",status:"active"},
-  {id:31,name:"Habiyakare Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0795590288",altmomo:"N/A",status:"active"},
-  {id:32,name:"Dushimumukiza Fidele",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792569378",altmomo:"N/A",status:"active"},
-  {id:33,name:"Nzayisenga Jean Damascene",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792539292",altmomo:"N/A",status:"active"},
-  {id:34,name:"Sebahire Olivier",cat:"Helper",fee:6000,ot_rate:1000,momo:"0791399508",altmomo:"Yankurije Denise",status:"active"},
-  {id:35,name:"Niyomugabo Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0793488674",altmomo:"N/A",status:"active"},
-  {id:36,name:"Seleman Gatete",cat:"Helper/BNR",fee:92000,ot_rate:1000,momo:"0783675142",altmomo:"N/A",status:"active"},
-  {id:37,name:"Console Mukabano",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0787660675",altmomo:"N/A",status:"active"},
-  {id:38,name:"Harerimana Jean De Dieu",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0785995237",altmomo:"N/A",status:"active"},
-  {id:39,name:"Arsene Nsengiyaremye",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0780932900",altmomo:"N/A",status:"active"},
-  {id:40,name:"Harerimana Athanase",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0796717997",altmomo:"N/A",status:"active"},
-  {id:41,name:"Janvier Hagumimana",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0782258264",altmomo:"N/A",status:"active"},
-  {id:42,name:"Jean Bosco Nizeyimana",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0798357280",altmomo:"N/A",status:"active"},
-  {id:43,name:"Imani Khaled",cat:"Machine rental",fee:100000,ot_rate:0,momo:"0793523768",altmomo:"N/A",status:"active"},
-  {id:44,name:"Xxx Muyizere",cat:"Machine rental",fee:115000,ot_rate:0,momo:"0791540599",altmomo:"N/A",status:"active"},
+  {id:1,name:"Dufitumukiza David",cat:"Helper",fee:6000,ot_rate:1000,momo:"0788973268",altmomo:"N/A",status:"active"},
+  {id:2,name:"Iradukunda Elissa",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782583179",altmomo:"N/A",status:"active"},
+  {id:3,name:"Nsengiyumva Celestin",cat:"Helper",fee:6000,ot_rate:1000,momo:"0785297427",altmomo:"N/A",status:"active"},
+  {id:4,name:"Jean De Dieu Munyaneza",cat:"Helper",fee:6000,ot_rate:1000,momo:"0793656939",altmomo:"N/A",status:"active"},
+  {id:5,name:"Mfitumukiza Jean De Dieu",cat:"Helper",fee:6000,ot_rate:1000,momo:"0787685070",altmomo:"N/A",status:"active"},
+  {id:6,name:"Mugisha Jean De Dieu",cat:"S.Technician",fee:6000,ot_rate:1000,momo:"0791388165",altmomo:"N/A",status:"active"},
+  {id:7,name:"Manishimwe Jean Claude",cat:"Helper",fee:6000,ot_rate:1000,momo:"0798583503",altmomo:"Irakoze Lea",status:"active"},
+  {id:8,name:"Niyonzima Jean Marie Vianney",cat:"Helper",fee:6000,ot_rate:1000,momo:"0793352817",altmomo:"N/A",status:"active"},
+  {id:9,name:"Niyomugabo Ejide",cat:"Helper",fee:6000,ot_rate:1000,momo:"0788753100",altmomo:"N/A",status:"active"},
+  {id:10,name:"Ndagijimana Emmanuel",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792317885",altmomo:"N/A",status:"active"},
+  {id:11,name:"Ntahobari Felecien",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786262910",altmomo:"N/A",status:"active"},
+  {id:12,name:"Nsengimana Celestin",cat:"Helper",fee:6000,ot_rate:1000,momo:"0780533352",altmomo:"N/A",status:"active"},
+  {id:13,name:"Ishimwe Fiston",cat:"Helper",fee:6000,ot_rate:1000,momo:"0795057411",altmomo:"N/A",status:"active"},
+  {id:14,name:"Neretsimana Jean De Dieu",cat:"Helper",fee:6000,ot_rate:1000,momo:"0781565751",altmomo:"N/A",status:"active"},
+  {id:15,name:"Ntakirutimana Faustin",cat:"Technician",fee:15000,ot_rate:2000,momo:"0792082787",altmomo:"N/A",status:"active"},
+  {id:16,name:"Rwabukumba",cat:"Helper",fee:6000,ot_rate:1000,momo:"0789671670",altmomo:"N/A",status:"active"},
+  {id:17,name:"Ndayisenga Emmanuel",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782502732",altmomo:"N/A",status:"active"},
+  {id:18,name:"Twahirwa Kenny",cat:"S.Technician",fee:10000,ot_rate:1667,momo:"0791965641",altmomo:"N/A",status:"active"},
+  {id:19,name:"Irakarama Laurent",cat:"Technician",fee:15000,ot_rate:2000,momo:"0782407368",altmomo:"N/A",status:"active"},
+  {id:20,name:"Elie Manishimwe",cat:"Technician",fee:15000,ot_rate:2000,momo:"0780842825",altmomo:"N/A",status:"active"},
+  {id:21,name:"Havugimana",cat:"Welder",fee:20000,ot_rate:2000,momo:"0785434717",altmomo:"N/A",status:"active"},
+  {id:22,name:"Eric Tuyishime",cat:"Technician",fee:15000,ot_rate:2000,momo:"0798691392",altmomo:"N/A",status:"active"},
+  {id:23,name:"Turikumwenayo Enock",cat:"Welder",fee:20000,ot_rate:2000,momo:"0782329467",altmomo:"N/A",status:"active"},
+  {id:24,name:"Tushabe Ramadhan",cat:"Helper",fee:15000,ot_rate:2000,momo:"0796829524",altmomo:"N/A",status:"active"},
+  {id:25,name:"Nsengiyumva Fiston",cat:"Technician",fee:15000,ot_rate:2000,momo:"0788889628",altmomo:"N/A",status:"active"},
+  {id:26,name:"Albert Dusengumuremyi",cat:"Technician",fee:15000,ot_rate:2000,momo:"0788100728",altmomo:"N/A",status:"active"},
+  {id:27,name:"Nkunzurwanda",cat:"Technician",fee:15000,ot_rate:2000,momo:"0782881119",altmomo:"N/A",status:"active"},
+  {id:28,name:"Bimenyimana Epimake",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782399446",altmomo:"N/A",status:"active"},
+  {id:29,name:"Ishimwe Samuel",cat:"Technician",fee:15000,ot_rate:2000,momo:"0798874205",altmomo:"N/A",status:"active"},
+  {id:30,name:"Mwumvaneza Alexandre",cat:"Technician",fee:15000,ot_rate:2000,momo:"0788338846",altmomo:"N/A",status:"active"},
+  {id:31,name:"Kagame Claude",cat:"Technician",fee:15000,ot_rate:2000,momo:"0784008103",altmomo:"N/A",status:"active"},
+  {id:32,name:"Kubwimana Xavier",cat:"Technician",fee:15000,ot_rate:2000,momo:"0783911722",altmomo:"N/A",status:"active"},
+  {id:33,name:"Joseph Muhoza",cat:"Technician",fee:15000,ot_rate:2000,momo:"0782853313",altmomo:"N/A",status:"active"},
+  {id:34,name:"Niyonshuti Patrick",cat:"Technician",fee:15000,ot_rate:2000,momo:"0785933361",altmomo:"N/A",status:"active"},
+  {id:35,name:"Mbutoyurukundo Epimake",cat:"Technician",fee:15000,ot_rate:2000,momo:"0785206906",altmomo:"N/A",status:"active"},
+  {id:36,name:"Nsanzeyezu Albert",cat:"Technician",fee:15000,ot_rate:2000,momo:"0792626446",altmomo:"N/A",status:"active"},
+  {id:37,name:"Nizeyumukiza Jean Baptiste",cat:"Technician",fee:15000,ot_rate:2000,momo:"0785203252",altmomo:"N/A",status:"active"},
+  {id:38,name:"Niyonzima Innocent",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786461777",altmomo:"N/A",status:"active"},
+  {id:39,name:"Ndagijimana Elie",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786265801",altmomo:"N/A",status:"active"},
+  {id:40,name:"Niyigena Erneste",cat:"Technician",fee:15000,ot_rate:2000,momo:"0788958461",altmomo:"N/A",status:"active"},
+  {id:41,name:"Butera Eric",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786208334",altmomo:"N/A",status:"active"},
+  {id:42,name:"Xxx Niyigena",cat:"Technician",fee:10000,ot_rate:2000,momo:"0738887508",altmomo:"N/A",status:"active"},
+  {id:43,name:"Sibomana Eric",cat:"Electrician",fee:20000,ot_rate:2000,momo:"0789683824",altmomo:"N/A",status:"active"},
+  {id:44,name:"Niyodusenga Thierry",cat:"Helper",fee:6000,ot_rate:1000,momo:"0790041143",altmomo:"N/A",status:"active"},
+  {id:45,name:"Niyonkuru Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792568242",altmomo:"N/A",status:"active"},
+  {id:46,name:"Turayisaba Eric",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782961232",altmomo:"N/A",status:"active"},
+  {id:47,name:"Seleman Gatete",cat:"Helper/BNR",fee:92000,ot_rate:1000,momo:"0783675142",altmomo:"N/A",status:"active"},
+  {id:48,name:"Ndagijimana Emmanuel (BNR)",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0782587048",altmomo:"N/A",status:"active"},
+  {id:49,name:"Niyonkuru Pacific (BNR)",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0792568242",altmomo:"N/A",status:"active"},
+  {id:50,name:"Console Mukabano",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0787660675",altmomo:"N/A",status:"active"},
+  {id:51,name:"Harerimana Jean De Dieu",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0785995237",altmomo:"N/A",status:"active"},
+  {id:52,name:"Muhire Jean Claude",cat:"Technician",fee:15000,ot_rate:2000,momo:"0795611187",altmomo:"N/A",status:"active"},
+  {id:53,name:"Arsene Nsengiyaremye",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0780932900",altmomo:"N/A",status:"active"},
+  {id:54,name:"Harerimana Athanase",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0796717997",altmomo:"N/A",status:"active"},
+  {id:55,name:"Dushimumukiza Fidele",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792569378",altmomo:"N/A",status:"active"},
+  {id:56,name:"Habiyakare Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0795590288",altmomo:"N/A",status:"active"},
+  {id:57,name:"Nzayisenga Jean Damascene",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792539292",altmomo:"N/A",status:"active"},
+  {id:58,name:"Sebahire Olivier",cat:"Helper",fee:6000,ot_rate:1000,momo:"0791399508",altmomo:"Yankurije Denise",status:"active"},
+  {id:59,name:"Niyomugabo Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0793488674",altmomo:"N/A",status:"active"},
+  {id:60,name:"Jean Bosco Nizeyimana",cat:"Helper/Kinyinya",fee:6000,ot_rate:1000,momo:"0798357280",altmomo:"N/A",status:"active"},
+  {id:61,name:"Gabriel Tuyihorane",cat:"Welder",fee:20000,ot_rate:2000,momo:"0789415160",altmomo:"N/A",status:"active"},
+  {id:62,name:"Rizinde Fabien",cat:"Welder",fee:20000,ot_rate:2000,momo:"0784505201",altmomo:"N/A",status:"active"},
+  {id:63,name:"Imani Khaled",cat:"Machine rental",fee:100000,ot_rate:0,momo:"0793523768",altmomo:"N/A",status:"active"},
+  {id:64,name:"Xxx Muyizere",cat:"Machine rental",fee:115000,ot_rate:0,momo:"0791540599",altmomo:"N/A",status:"active"},
+  {id:65,name:"Janvier Hagumimana",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0782258264",altmomo:"N/A",status:"active"},
 ];
 
 // ── In-memory data store ──
@@ -548,8 +569,8 @@ function initFirebase() {
       const data = snapshot.val();
       if (!data) return;
       let changed = false;
-      if (data.workers) { DB.workers = data.workers; changed = true; }
-      if (data.projects) { DB.projects = data.projects; changed = true; }
+      if (data.workers) { DB.workers = objToArr(data.workers); changed = true; }
+      if (data.projects) { DB.projects = objToArr(data.projects); changed = true; }
       if (data.attendance) { DB.attendance = data.attendance; changed = true; }
       if (data.settings) { DB.settings = { ...DB.settings, ...data.settings }; changed = true; }
       // Re-render the current screen silently if data changed from another device
@@ -571,19 +592,26 @@ function initFirebase() {
 function lsSave(k,v){ try{ localStorage.setItem('homeid_'+k, JSON.stringify(v)); }catch(e){} }
 function lsLoad(k){ try{ const v=localStorage.getItem('homeid_'+k); return v?JSON.parse(v):null; }catch(e){return null;} }
 
+// Convert array to object keyed by id (Firebase handles objects better than arrays)
+function arrToObj(arr){ const o={}; arr.forEach(x=>{ o[x.id]=x; }); return o; }
+// Convert object back to array
+function objToArr(obj){ if(!obj) return []; if(Array.isArray(obj)) return obj; return Object.values(obj); }
+
 async function saveDB() {
   if (firebaseReady && firebaseDB) {
     try {
+      // Store workers & projects as objects keyed by id — avoids Firebase array truncation
+      const workersObj = arrToObj(DB.workers);
+      const projectsObj = arrToObj(DB.projects);
       await firebaseDB.ref('homeid').update({
-        workers: DB.workers,
-        projects: DB.projects,
+        workers: workersObj,
+        projects: projectsObj,
         attendance: DB.attendance,
         settings: DB.settings
       });
       return;
     } catch(e) { console.warn("Firebase save failed, falling back:", e); }
   }
-  // fallback to localStorage
   lsSave('workers', DB.workers);
   lsSave('projects', DB.projects);
   lsSave('attendance', DB.attendance);
@@ -596,16 +624,26 @@ async function loadDB() {
       const snap = await firebaseDB.ref('homeid').get();
       const data = snap.val();
       if (data) {
-        if (data.workers) DB.workers = data.workers;
-        else { DB.workers = DEFAULT_WORKERS.map(x=>({...x})); await saveDB(); }
-        if (data.projects) DB.projects = data.projects;
+        const loadedWorkers = objToArr(data.workers);
+        // If Firebase has fewer workers than DEFAULT, re-seed to fix corruption
+        if (loadedWorkers.length < DEFAULT_WORKERS.length) {
+          DB.workers = DEFAULT_WORKERS.map(x=>({...x}));
+          await firebaseDB.ref('homeid/workers').set(arrToObj(DB.workers));
+        } else {
+          DB.workers = loadedWorkers;
+        }
+        if (data.projects) DB.projects = objToArr(data.projects);
         if (data.attendance) DB.attendance = data.attendance;
         if (data.settings) DB.settings = { ...DB.settings, ...data.settings };
+        return;
+      } else {
+        // Empty database — seed all workers
+        DB.workers = DEFAULT_WORKERS.map(x=>({...x}));
+        await firebaseDB.ref('homeid/workers').set(arrToObj(DB.workers));
         return;
       }
     } catch(e) { console.warn("Firebase load failed, falling back:", e); }
   }
-  // fallback to localStorage
   const w = lsLoad('workers');
   const p = lsLoad('projects');
   const a = lsLoad('attendance');
