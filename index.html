@@ -595,7 +595,7 @@ function lsLoad(k){ try{ const v=localStorage.getItem('homeid_'+k); return v?JSO
 // Convert array to object keyed by id (Firebase handles objects better than arrays)
 function arrToObj(arr){ const o={}; arr.forEach(x=>{ o[x.id]=x; }); return o; }
 // Convert object back to array
-function objToArr(obj){ if(!obj) return []; if(Array.isArray(obj)) return obj; return Object.values(obj); }
+function objToArr(obj){ if(!obj) return []; if(Array.isArray(obj)) return obj.map(x=>({...x,id:Number(x.id)})); return Object.values(obj).map(x=>({...x,id:Number(x.id)})); }
 
 async function saveDB() {
   if (firebaseReady && firebaseDB) {
@@ -813,12 +813,14 @@ function renderAttList(){
   }).join('');
 }
 function toggleWorker(wid,v){
+  wid=Number(wid);
   const a=getWorkerAtt(currentProjId,wid);
   a.present=v; if(v&&!a.days) a.days=1;
   saveDB(); renderAttList();
 }
 function openAttDetail(wid){
-  const w=DB.workers.find(x=>x.id===wid);
+  wid=Number(wid);
+  const w=DB.workers.find(x=>Number(x.id)===wid);
   const a=getWorkerAtt(currentProjId,wid);
   attDetailWorkerId=wid;
   document.getElementById('ad-name').textContent=w.name;
@@ -843,8 +845,9 @@ function openAttDetail(wid){
   showModal('modal-att-detail');
 }
 function saveAttDetail(){
+  attDetailWorkerId=Number(attDetailWorkerId);
   const a=getWorkerAtt(currentProjId,attDetailWorkerId);
-  const w=DB.workers.find(x=>x.id===attDetailWorkerId);
+  const w=DB.workers.find(x=>Number(x.id)===attDetailWorkerId);
   a.days=Number(document.getElementById('ad-days').value)||1;
   a.ot=Number(document.getElementById('ad-ot').value)||0;
   const wages=calcWages(w,a);
