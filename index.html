@@ -802,13 +802,13 @@ function renderAttList(){
   el.innerHTML=workers.map(w=>{
     const a=getWorkerAtt(currentProjId,w.id);
     const wages=a.present?calcWages(w,a):0;
-    return `<div class="worker-card${a.present?' present':''}">
+    return `<div class="worker-card${a.present?' present':''}" onclick="openAttDetail(${w.id})">
       <div class="avatar" style="background:${avatarColor(w.cat)};color:${avatarTextColor(w.cat)}">${initials(w.name)}</div>
-      <div class="winfo" onclick="openAttDetail(${w.id})">
+      <div class="winfo">
         <div class="wname">${w.name}</div>
         <div class="wcat">${w.cat} · ${fmtNum(w.fee)}/day${a.present?' · <span style="color:var(--green2);font-weight:600">'+fmtNum(wages)+' RWF</span>':''}</div>
       </div>
-      <label class="toggle"><input type="checkbox" ${a.present?'checked':''} onchange="toggleWorker(${w.id},this.checked)"><span class="toggle-slider"></span></label>
+      <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" ${a.present?'checked':''} onchange="toggleWorker(${w.id},this.checked)"><span class="toggle-slider"></span></label>
     </div>`;
   }).join('');
 }
@@ -821,6 +821,7 @@ function toggleWorker(wid,v){
 function openAttDetail(wid){
   wid=Number(wid);
   const w=DB.workers.find(x=>Number(x.id)===wid);
+  if(!w){ toast('Worker not found — try refreshing'); return; }
   const a=getWorkerAtt(currentProjId,wid);
   attDetailWorkerId=wid;
   document.getElementById('ad-name').textContent=w.name;
