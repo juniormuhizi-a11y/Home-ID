@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Home ID Payroll</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2f4f0;--surface:#fff;--surface2:#f7f9f5;--border:#dde3d8;
+  --green:#1a3a1a;--green2:#2a7a2a;--green3:#d0e8d0;--green4:#e8f5e8;
+  --orange:#e8a020;--orange2:#fdecc8;--orange3:#c07010;
+  --red:#cc2222;--red2:#fce8e8;
+  --text:#111;--muted:#666;--muted2:#999;
+  --radius:12px;--radius-sm:8px;--radius-pill:99px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;font-size:14px;background:var(--bg);color:var(--text);}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);transition:transform .3s ease,opacity .3s ease;z-index:10;}
+.screen.hidden{transform:translateX(100%);opacity:0;pointer-events:none;}
+.screen.slide-left{transform:translateX(-100%);opacity:0;pointer-events:none;}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--green);color:#fff;padding:14px 16px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.topbar-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;flex:1;}
+.topbar-sub{font-size:11px;color:#8ab08a;margin-top:1px;}
+.topbar-btn{width:36px;height:36px;border-radius:var(--radius-sm);border:none;background:rgba(255,255,255,.1);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.topbar-btn:active{background:rgba(255,255,255,.2);}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;flex-shrink:0;safe-area-inset-bottom:env(safe-area-inset-bottom);}
+.nav-item{flex:1;padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--muted);font-family:'DM Sans',sans-serif;}
+.nav-item .nav-icon{font-size:22px;line-height:1;}
+.nav-item .nav-lbl{font-size:10px;font-weight:500;}
+.nav-item.active{color:var(--green);}
+.nav-item.active .nav-icon{color:var(--green);}
+
+/* ── SCROLL CONTENT ── */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.pad{padding:14px;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.card+.card{margin-top:10px;}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;}
+.stat-n{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1;}
+.stat-l{font-size:11px;color:var(--muted);margin-top:3px;}
+.stat-n.g{color:var(--green2);}
+.stat-n.o{color:var(--orange3);}
+.stat-n.r{color:var(--red);}
+
+/* ── SECTION LABEL ── */
+.sec-lbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;}
+
+/* ── TAGS / BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;}
+.badge-green{background:var(--green4);color:var(--green2);}
+.badge-orange{background:var(--orange2);color:var(--orange3);}
+.badge-red{background:var(--red2);color:var(--red);}
+.badge-gray{background:var(--surface2);color:var(--muted);}
+
+/* ── WORKER CARD ── */
+.worker-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.worker-card.present{border-color:var(--green2);background:var(--green4);}
+.worker-card.absent{opacity:.7;}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--green3);color:var(--green);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.winfo{flex:1;min-width:0;}
+.wname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wcat{font-size:11px;color:var(--muted);}
+
+/* ── TOGGLE ── */
+.toggle{position:relative;width:46px;height:26px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:26px;cursor:pointer;transition:background .2s;}
+.toggle-slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle input:checked+.toggle-slider{background:var(--green2);}
+.toggle input:checked+.toggle-slider:before{transform:translateX(20px);}
+
+/* ── BUTTONS ── */
+.btn{padding:12px 18px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn:active{opacity:.8;}
+.btn-primary{background:var(--green);color:#fff;width:100%;justify-content:center;}
+.btn-orange{background:var(--orange);color:#000;width:100%;justify-content:center;}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-danger{background:var(--red2);color:var(--red);}
+.btn-sm{padding:7px 12px;font-size:12px;}
+
+/* ── INPUTS ── */
+.input-group{margin-bottom:12px;}
+.input-group label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:5px;}
+.input-field{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);color:var(--text);outline:none;transition:border-color .15s;}
+.input-field:focus{border-color:var(--green2);}
+select.input-field{appearance:none;}
+
+/* ── BOTTOM ACTION BAR ── */
+.action-bar{background:var(--surface);border-top:1px solid var(--border);padding:12px 14px;display:flex;gap:8px;flex-shrink:0;}
+
+/* ── PROJECT TABS ── */
+.proj-tabs{display:flex;gap:6px;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
+.proj-tab{flex-shrink:0;padding:6px 14px;border-radius:var(--radius-pill);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;}
+.proj-tab.active{background:var(--green);color:#fff;border-color:var(--green);}
+
+/* ── SEARCH BAR ── */
+.search-wrap{padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.search-input{width:100%;border:1px solid var(--border);border-radius:var(--radius-pill);padding:9px 14px;font-size:14px;background:var(--surface2);outline:none;}
+
+/* ── PIN SCREEN ── */
+#screen-pin{background:var(--green);z-index:100;}
+.pin-logo{text-align:center;padding:50px 20px 30px;}
+.pin-logo-box{width:72px;height:72px;background:var(--orange);border-radius:18px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;}
+.pin-logo-box svg{width:48px;height:48px;}
+.pin-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#fff;}
+.pin-sub{font-size:12px;color:#8ab08a;margin-top:4px;}
+.pin-dots{display:flex;justify-content:center;gap:14px;margin:24px 0;}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .15s;}
+.pin-dot.filled{background:#fff;}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 30px 20px;}
+.pin-key{background:rgba(255,255,255,.1);border:none;border-radius:var(--radius);height:58px;font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#fff;cursor:pointer;transition:background .15s;}
+.pin-key:active{background:rgba(255,255,255,.25);}
+.pin-key.del{font-size:18px;}
+.pin-error{text-align:center;color:#ff9999;font-size:13px;margin-top:-8px;margin-bottom:8px;min-height:18px;}
+.pin-role-row{display:flex;gap:10px;padding:0 30px 20px;}
+.pin-role-btn{flex:1;padding:10px;border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+.pin-role-btn.sel{background:var(--orange);border-color:var(--orange);color:#000;}
+
+/* ── MINI CHART ── */
+.mini-chart{display:flex;align-items:flex-end;gap:4px;height:48px;}
+.mini-bar{flex:1;border-radius:4px 4px 0 0;background:var(--green3);min-height:4px;transition:height .3s;}
+.mini-bar.active{background:var(--green2);}
+
+/* ── PAYROLL PERIOD CARD ── */
+.period-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;}
+.period-card .period-info{flex:1;min-width:0;}
+.period-card .period-name{font-size:14px;font-weight:600;}
+.period-card .period-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.period-card .period-amt{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;}
+
+/* ── DETAIL SHEET ── */
+.detail-header{padding:16px 14px;background:var(--surface);border-bottom:1px solid var(--border);}
+.detail-name{font-size:18px;font-weight:700;}
+.detail-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.kv-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.kv-row:last-child{border:none;}
+.kv-key{font-size:13px;color:var(--muted);}
+.kv-val{font-size:13px;font-weight:600;}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:20px 16px 30px;transform:translateY(100%);transition:transform .25s ease;}
+.modal-bg.open .modal{transform:translateY(0);}
+.modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:16px;}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--green);color:#fff;padding:10px 20px;border-radius:var(--radius-pill);font-size:13px;font-weight:600;z-index:999;transition:transform .3s ease;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ── LOADING ── */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;color:var(--muted);}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--green2);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.empty-sub{font-size:13px;line-height:1.5;}
+
+/* ── OT DETAIL ROW ── */
+.ot-expand{padding:8px 14px 12px;border-top:1px solid var(--border);background:var(--green4);display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ot-field label{font-size:10px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px;}
+.ot-input{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:14px;font-family:'DM Mono',monospace;text-align:center;outline:none;background:var(--surface);}
+
+/* ── CHART BARS ── */
+.h-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.h-bar-lbl{font-size:11px;color:var(--muted);width:72px;text-align:right;flex-shrink:0;}
+.h-bar-bg{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.h-bar-fill{height:100%;border-radius:4px;background:var(--green2);}
+.h-bar-val{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);width:50px;text-align:right;flex-shrink:0;}
+
+/* ── SCROLL TABS (cat filter) ── */
+.cat-tabs{display:flex;gap:6px;padding:10px 14px;overflow-x:auto;flex-shrink:0;background:var(--bg);}
+.cat-tab{flex-shrink:0;padding:5px 12px;border-radius:var(--radius-pill);font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);}
+.cat-tab.active{background:var(--green3);color:var(--green);border-color:var(--green3);}
+</style>
+</head>
+<body>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: PIN LOGIN
+══════════════════════════════════════ -->
+<div class="screen" id="screen-pin">
+  <div class="pin-logo">
+    <div class="pin-logo-box">
+      <svg viewBox="0 0 48 48" fill="none">
+        <path d="M24 6L6 20v22h12V30h12v12h12V20L24 6z" fill="white" opacity=".9"/>
+        <rect x="20" y="32" width="8" height="10" rx="1" fill="#e8a020"/>
+        <rect x="14" y="22" width="7" height="7" rx="1" fill="white" opacity=".6"/>
+        <line x1="17.5" y1="22" x2="17.5" y2="29" stroke="#e8a020" stroke-width="1"/>
+        <line x1="14" y1="25.5" x2="21" y2="25.5" stroke="#e8a020" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="pin-title">Home ID</div>
+    <div class="pin-sub">Home Interiors Design Ltd</div>
+  </div>
+  <div style="padding:0 30px 8px;text-align:center;">
+    <div style="font-size:13px;color:rgba(255,255,255,.6);margin-bottom:6px;">Sign in as</div>
+    <div class="pin-role-row" style="padding:0;margin-bottom:0;">
+      <button class="pin-role-btn sel" id="role-admin" onclick="selectRole('admin')">Admin</button>
+      <button class="pin-role-btn" id="role-supervisor" onclick="selectRole('supervisor')">Supervisor</button>
+    </div>
+  </div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinKey(1)">1</button>
+    <button class="pin-key" onclick="pinKey(2)">2</button>
+    <button class="pin-key" onclick="pinKey(3)">3</button>
+    <button class="pin-key" onclick="pinKey(4)">4</button>
+    <button class="pin-key" onclick="pinKey(5)">5</button>
+    <button class="pin-key" onclick="pinKey(6)">6</button>
+    <button class="pin-key" onclick="pinKey(7)">7</button>
+    <button class="pin-key" onclick="pinKey(8)">8</button>
+    <button class="pin-key" onclick="pinKey(9)">9</button>
+    <button class="pin-key" style="background:transparent;"></button>
+    <button class="pin-key" onclick="pinKey(0)">0</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
+  <div style="text-align:center;padding:0 0 30px;font-size:12px;color:rgba(255,255,255,.4);">
+    Default PIN: Admin 1234 · Supervisor 5678
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: DASHBOARD
+══════════════════════════════════════ -->
+<div class="screen hidden" id="screen-dash">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Home ID</div>
+      <div class="topbar-sub" id="dash-date"></div>
+    </div>
+    <button class="topbar-btn" onclick="showModal('modal-newperiod')" title="New period">＋</button>
+    <button class="topbar-btn" onclick="logout()" title="Logout">⎋</button>
+  </div>
+  <div class="content pad" id="dash-content">
+    <div class="loading"><div class="spinner"></div><span>Loading...</span></div>
+  </div>
+  <div class="bottom-nav" id="nav-dash">
+    <button class="nav-item active" onclick="navigate('dash')"><span class="nav-icon">⊞</span><span class="nav-lbl">Dashboard</span></button>
+    <button class="nav-item" onclick="navigate('att')"><span class="nav-icon">✓</span><span class="nav-lbl">Attendance</span></button>
+    <button class="nav-item" onclick="navigate('workers')"><span class="nav-icon">👥</span><span class="nav-lbl">Workers</span></button>
+    <button class="nav-item" onclick="navigate('payroll')"><span class="nav-icon">📄</span><span class="nav-lbl">Payroll</span></button>
+    <button class="nav-item" onclick="navigate('settings')"><span class="nav-icon">⚙</span><span class="nav-lbl">Settings</span></button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: ATTENDANCE
+══════════════════════════════════════ -->
+<div class="screen hidden" id="screen-att">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Attendance</div>
+      <div class="topbar-sub" id="att-period-lbl">Select a project</div>
+    </div>
+    <button class="topbar-btn" onclick="markAllVisible()">✓</button>
+    <button class="topbar-btn" onclick="clearVisible()">✕</button>
+  </div>
+  <div class="proj-tabs" id="att-proj-tabs"></div>
+  <div class="search-wrap">
+    <input class="search-input" id="att-search" placeholder="Search worker…" oninput="renderAttList()">
+  </div>
+  <div class="cat-tabs" id="att-cat-tabs"></div>
+  <!-- stats strip -->
+  <div style="display:flex;gap:8px;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;">
+    <div class="stat-card" style="flex:1;padding:8px 10px;"><div class="stat-n g" id="att-stat-p" style="font-size:18px;">0</div><div class="stat-l">Present</div></div>
+    <div class="stat-card" style="flex:1;padding:8px 10px;"><div class="stat-n" style="font-size:18px;color:var(--muted2);" id="att-stat-a">0</div><div class="stat-l">Absent</div></div>
+    <div class="stat-card" style="flex:1;padding:8px 10px;"><div class="stat-n o" id="att-stat-ot" style="font-size:18px;">0</div><div class="stat-l">OT hrs</div></div>
+    <div class="stat-card" style="flex:1;padding:8px 10px;"><div class="stat-n g" id="att-stat-tot" style="font-size:14px;padding-top:3px;">0K</div><div class="stat-l">Total</div></div>
+  </div>
+  <div class="content" id="att-list" style="padding:8px 14px;"></div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="navigate('dash')"><span class="nav-icon">⊞</span><span class="nav-lbl">Dashboard</span></button>
+    <button class="nav-item active" onclick="navigate('att')"><span class="nav-icon">✓</span><span class="nav-lbl">Attendance</span></button>
+    <button class="nav-item" onclick="navigate('workers')"><span class="nav-icon">👥</span><span class="nav-lbl">Workers</span></button>
+    <button class="nav-item" onclick="navigate('payroll')"><span class="nav-icon">📄</span><span class="nav-lbl">Payroll</span></button>
+    <button class="nav-item" onclick="navigate('settings')"><span class="nav-icon">⚙</span><span class="nav-lbl">Settings</span></button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: WORKERS
+══════════════════════════════════════ -->
+<div class="screen hidden" id="screen-workers">
+  <div class="topbar">
+    <div><div class="topbar-title">Workers</div><div class="topbar-sub" id="workers-count"></div></div>
+    <button class="topbar-btn" onclick="showModal('modal-addworker')">＋</button>
+  </div>
+  <div class="search-wrap">
+    <input class="search-input" id="workers-search" placeholder="Search worker…" oninput="renderWorkerList()">
+  </div>
+  <div class="cat-tabs" id="workers-cat-tabs"></div>
+  <div class="content" id="workers-list" style="padding:8px 14px;"></div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="navigate('dash')"><span class="nav-icon">⊞</span><span class="nav-lbl">Dashboard</span></button>
+    <button class="nav-item" onclick="navigate('att')"><span class="nav-icon">✓</span><span class="nav-lbl">Attendance</span></button>
+    <button class="nav-item active" onclick="navigate('workers')"><span class="nav-icon">👥</span><span class="nav-lbl">Workers</span></button>
+    <button class="nav-item" onclick="navigate('payroll')"><span class="nav-icon">📄</span><span class="nav-lbl">Payroll</span></button>
+    <button class="nav-item" onclick="navigate('settings')"><span class="nav-icon">⚙</span><span class="nav-lbl">Settings</span></button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: PAYROLL ARCHIVE
+══════════════════════════════════════ -->
+<div class="screen hidden" id="screen-payroll">
+  <div class="topbar">
+    <div><div class="topbar-title">Payroll</div><div class="topbar-sub">All periods</div></div>
+  </div>
+  <div class="content pad" id="payroll-list"></div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="navigate('dash')"><span class="nav-icon">⊞</span><span class="nav-lbl">Dashboard</span></button>
+    <button class="nav-item" onclick="navigate('att')"><span class="nav-icon">✓</span><span class="nav-lbl">Attendance</span></button>
+    <button class="nav-item" onclick="navigate('workers')"><span class="nav-icon">👥</span><span class="nav-lbl">Workers</span></button>
+    <button class="nav-item active" onclick="navigate('payroll')"><span class="nav-icon">📄</span><span class="nav-lbl">Payroll</span></button>
+    <button class="nav-item" onclick="navigate('settings')"><span class="nav-icon">⚙</span><span class="nav-lbl">Settings</span></button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: SETTINGS
+══════════════════════════════════════ -->
+<div class="screen hidden" id="screen-settings">
+  <div class="topbar"><div class="topbar-title">Settings</div></div>
+  <div class="content pad" id="settings-content"></div>
+  <div class="bottom-nav">
+    <button class="nav-item" onclick="navigate('dash')"><span class="nav-icon">⊞</span><span class="nav-lbl">Dashboard</span></button>
+    <button class="nav-item" onclick="navigate('att')"><span class="nav-icon">✓</span><span class="nav-lbl">Attendance</span></button>
+    <button class="nav-item" onclick="navigate('workers')"><span class="nav-icon">👥</span><span class="nav-lbl">Workers</span></button>
+    <button class="nav-item" onclick="navigate('payroll')"><span class="nav-icon">📄</span><span class="nav-lbl">Payroll</span></button>
+    <button class="nav-item active" onclick="navigate('settings')"><span class="nav-icon">⚙</span><span class="nav-lbl">Settings</span></button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: WORKER DETAIL
+══════════════════════════════════════ -->
+<div class="screen hidden" id="screen-worker-detail">
+  <div class="topbar">
+    <button class="topbar-btn" onclick="goBack()" style="margin-right:4px;">←</button>
+    <div class="topbar-title" id="wd-title">Worker</div>
+    <button class="topbar-btn" id="wd-edit-btn" onclick="editCurrentWorker()">✎</button>
+  </div>
+  <div class="content pad" id="wd-content"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN: PAYROLL DETAIL
+══════════════════════════════════════ -->
+<div class="screen hidden" id="screen-period-detail">
+  <div class="topbar">
+    <button class="topbar-btn" onclick="goBack()" style="margin-right:4px;">←</button>
+    <div class="topbar-title" id="pd-title">Period</div>
+    <button class="topbar-btn" onclick="exportCurrentPeriod()">↓</button>
+  </div>
+  <div class="content pad" id="pd-content"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════ -->
+
+<!-- New period modal -->
+<div class="modal-bg" id="modal-newperiod" onclick="closeModalBg(event,'modal-newperiod')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">New Pay Period</div>
+    <div class="input-group"><label>Period name</label><input class="input-field" id="np-name" placeholder="e.g. 6th–11th May 2026"></div>
+    <div class="input-group"><label>Project / Site</label><input class="input-field" id="np-project" placeholder="e.g. Leakage | Vault Projects"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="input-group"><label>Start date</label><input class="input-field" id="np-start" type="date"></div>
+      <div class="input-group"><label>End date</label><input class="input-field" id="np-end" type="date"></div>
+    </div>
+    <div class="input-group"><label>Prepared by</label><input class="input-field" id="np-prep" placeholder="Name"></div>
+    <button class="btn btn-primary" onclick="createPeriod()">Create Period</button>
+  </div>
+</div>
+
+<!-- Add/Edit worker modal -->
+<div class="modal-bg" id="modal-addworker" onclick="closeModalBg(event,'modal-addworker')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="aw-title">Add Worker</div>
+    <input type="hidden" id="aw-id">
+    <div class="input-group"><label>Full name</label><input class="input-field" id="aw-name" placeholder="Full name"></div>
+    <div class="input-group"><label>Category</label>
+      <select class="input-field" id="aw-cat">
+        <option>Helper</option><option>Technician</option><option>Welder</option>
+        <option>S.Technician</option><option>Electrician</option><option>Helper/BNR</option>
+        <option>Machine rental</option><option>Other</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="input-group"><label>Daily fee (RWF)</label><input class="input-field" id="aw-fee" type="number" placeholder="6000"></div>
+      <div class="input-group"><label>OT rate (RWF/hr)</label><input class="input-field" id="aw-ot" type="number" placeholder="1000"></div>
+    </div>
+    <div class="input-group"><label>MoMo number</label><input class="input-field" id="aw-momo" placeholder="07XXXXXXXX" type="tel"></div>
+    <div class="input-group"><label>Alt. MoMo name (optional)</label><input class="input-field" id="aw-altmomo" placeholder="N/A"></div>
+    <div class="input-group"><label>Status</label>
+      <select class="input-field" id="aw-status"><option value="active">Active</option><option value="inactive">Inactive</option></select>
+    </div>
+    <button class="btn btn-primary" onclick="saveWorker()">Save Worker</button>
+  </div>
+</div>
+
+<!-- Attendance OT detail modal -->
+<div class="modal-bg" id="modal-att-detail" onclick="closeModalBg(event,'modal-att-detail')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="ad-name"></div>
+    <div id="ad-body"></div>
+    <button class="btn btn-primary" onclick="saveAttDetail()">Save</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+const PINS = { admin:'1234', supervisor:'5678' };
+let currentRole = 'admin';
+let currentUser = null;
+let pinBuffer = '';
+let currentScreen = 'pin';
+let prevScreen = null;
+let currentProjId = null;
+let attCatFilter = 'all';
+let workerCatFilter = 'all';
+let currentWorkerId = null;
+let currentPeriodId = null;
+let attDetailWorkerId = null;
+
+// ── Default worker list (seed data) ──
+const DEFAULT_WORKERS = [
+  {id:1,name:"Eric Tuyishime",cat:"Technician",fee:15000,ot_rate:2000,momo:"0798691392",altmomo:"N/A",status:"active"},
+  {id:2,name:"Nsengiyumva Fiston",cat:"Technician",fee:15000,ot_rate:2000,momo:"0788889628",altmomo:"N/A",status:"active"},
+  {id:3,name:"Havugimana",cat:"Welder",fee:20000,ot_rate:2000,momo:"0785434717",altmomo:"N/A",status:"active"},
+  {id:4,name:"Turikumwenayo Enock",cat:"Welder",fee:20000,ot_rate:2000,momo:"0782329467",altmomo:"N/A",status:"active"},
+  {id:5,name:"Gabriel Tuyihorane",cat:"Welder",fee:20000,ot_rate:2000,momo:"0789415160",altmomo:"N/A",status:"active"},
+  {id:6,name:"Rizinde Fabien",cat:"Welder",fee:20000,ot_rate:2000,momo:"0784505201",altmomo:"N/A",status:"active"},
+  {id:7,name:"Sibomana Eric",cat:"Electrician",fee:20000,ot_rate:2000,momo:"0789683824",altmomo:"N/A",status:"active"},
+  {id:8,name:"Twahirwa Kenny",cat:"S.Technician",fee:10000,ot_rate:1667,momo:"0791965641",altmomo:"N/A",status:"active"},
+  {id:9,name:"Mugisha Jean De Dieu",cat:"S.Technician",fee:6000,ot_rate:1000,momo:"0791388165",altmomo:"N/A",status:"active"},
+  {id:10,name:"Irakarama Laurent",cat:"Technician",fee:15000,ot_rate:2000,momo:"0782407368",altmomo:"N/A",status:"active"},
+  {id:11,name:"Elie Manishimwe",cat:"Technician",fee:15000,ot_rate:2000,momo:"0780842825",altmomo:"N/A",status:"active"},
+  {id:12,name:"Butera Eric",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786208334",altmomo:"N/A",status:"active"},
+  {id:13,name:"Muhire Jean Claude",cat:"Technician",fee:15000,ot_rate:2000,momo:"0795611187",altmomo:"N/A",status:"active"},
+  {id:14,name:"Nkunzurwanda",cat:"Technician",fee:15000,ot_rate:2000,momo:"0782881119",altmomo:"N/A",status:"active"},
+  {id:15,name:"Ishimwe Samuel",cat:"Technician",fee:15000,ot_rate:2000,momo:"0798874205",altmomo:"N/A",status:"active"},
+  {id:16,name:"Kagame Claude",cat:"Technician",fee:15000,ot_rate:2000,momo:"0784008103",altmomo:"N/A",status:"active"},
+  {id:17,name:"Ntahobari Felecien",cat:"Technician",fee:15000,ot_rate:2000,momo:"0786262910",altmomo:"N/A",status:"active"},
+  {id:18,name:"Ntakirutimana Faustin",cat:"Technician",fee:15000,ot_rate:2000,momo:"0792082787",altmomo:"N/A",status:"active"},
+  {id:19,name:"Nsengimana Celestin",cat:"Helper",fee:6000,ot_rate:1000,momo:"0780533352",altmomo:"N/A",status:"active"},
+  {id:20,name:"Dufitumukiza David",cat:"Helper",fee:6000,ot_rate:1000,momo:"0788973268",altmomo:"N/A",status:"active"},
+  {id:21,name:"Iradukunda Elissa",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782583179",altmomo:"N/A",status:"active"},
+  {id:22,name:"Nsengiyumva Celestin",cat:"Helper",fee:6000,ot_rate:1000,momo:"0785297427",altmomo:"N/A",status:"active"},
+  {id:23,name:"Manishimwe Jean Claude",cat:"Helper",fee:6000,ot_rate:1000,momo:"0798583503",altmomo:"Irakoze Lea",status:"active"},
+  {id:24,name:"Rwabukumba",cat:"Helper",fee:6000,ot_rate:1000,momo:"0789671670",altmomo:"N/A",status:"active"},
+  {id:25,name:"Ndayisenga Emmanuel",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782502732",altmomo:"N/A",status:"active"},
+  {id:26,name:"Bimenyimana Epimake",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782399446",altmomo:"N/A",status:"active"},
+  {id:27,name:"Niyodusenga Thierry",cat:"Helper",fee:6000,ot_rate:1000,momo:"0790041143",altmomo:"N/A",status:"active"},
+  {id:28,name:"Niyonkuru Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792568242",altmomo:"N/A",status:"active"},
+  {id:29,name:"Turayisaba Eric",cat:"Helper",fee:6000,ot_rate:1000,momo:"0782961232",altmomo:"N/A",status:"active"},
+  {id:30,name:"Tushabe Ramadhan",cat:"Helper",fee:15000,ot_rate:2000,momo:"0796829524",altmomo:"N/A",status:"active"},
+  {id:31,name:"Habiyakare Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0795590288",altmomo:"N/A",status:"active"},
+  {id:32,name:"Dushimumukiza Fidele",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792569378",altmomo:"N/A",status:"active"},
+  {id:33,name:"Nzayisenga Jean Damascene",cat:"Helper",fee:6000,ot_rate:1000,momo:"0792539292",altmomo:"N/A",status:"active"},
+  {id:34,name:"Sebahire Olivier",cat:"Helper",fee:6000,ot_rate:1000,momo:"0791399508",altmomo:"Yankurije Denise",status:"active"},
+  {id:35,name:"Niyomugabo Pacific",cat:"Helper",fee:6000,ot_rate:1000,momo:"0793488674",altmomo:"N/A",status:"active"},
+  {id:36,name:"Seleman Gatete",cat:"Helper/BNR",fee:92000,ot_rate:1000,momo:"0783675142",altmomo:"N/A",status:"active"},
+  {id:37,name:"Console Mukabano",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0787660675",altmomo:"N/A",status:"active"},
+  {id:38,name:"Harerimana Jean De Dieu",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0785995237",altmomo:"N/A",status:"active"},
+  {id:39,name:"Arsene Nsengiyaremye",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0780932900",altmomo:"N/A",status:"active"},
+  {id:40,name:"Harerimana Athanase",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0796717997",altmomo:"N/A",status:"active"},
+  {id:41,name:"Janvier Hagumimana",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0782258264",altmomo:"N/A",status:"active"},
+  {id:42,name:"Jean Bosco Nizeyimana",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0798357280",altmomo:"N/A",status:"active"},
+  {id:43,name:"Imani Khaled",cat:"Machine rental",fee:100000,ot_rate:0,momo:"0793523768",altmomo:"N/A",status:"active"},
+  {id:44,name:"Xxx Muyizere",cat:"Machine rental",fee:115000,ot_rate:0,momo:"0791540599",altmomo:"N/A",status:"active"},
+];
+
+// ── In-memory data store ──
+let DB = {
+  workers: [],
+  projects: [],   // [{id, name, startDate, endDate, preparedBy}]
+  attendance: {}, // projectId -> {workerId -> {present,days,ot,paid,altmomo}}
+  settings: { adminPin:'1234', supervisorPin:'5678', company:'Home Interiors Design Ltd', prepared:'Junior Munizi Praise', approvers:['Nduwayezu Gaspard','Twizeyimana Gallican'] }
+};
+
+// ═══════════════════════════════════════════════════
+//  CLOUD STORAGE (window.storage API)
+// ═══════════════════════════════════════════════════
+async function cloudSave(key, val) {
+  try { await window.storage.set(key, JSON.stringify(val)); } catch(e){ lsSave(key,val); }
+}
+async function cloudLoad(key) {
+  try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : null; }
+  catch(e){ return lsLoad(key); }
+}
+function lsSave(k,v){ try{ localStorage.setItem('homeid_'+k, JSON.stringify(v)); }catch(e){} }
+function lsLoad(k){ try{ const v=localStorage.getItem('homeid_'+k); return v?JSON.parse(v):null; }catch(e){return null;} }
+
+async function saveDB() {
+  await cloudSave('workers', DB.workers);
+  await cloudSave('projects', DB.projects);
+  await cloudSave('attendance', DB.attendance);
+  await cloudSave('settings', DB.settings);
+}
+async function loadDB() {
+  const w = await cloudLoad('workers');
+  const p = await cloudLoad('projects');
+  const a = await cloudLoad('attendance');
+  const s = await cloudLoad('settings');
+  if(w) DB.workers = w; else { DB.workers = DEFAULT_WORKERS.map(x=>({...x})); await cloudSave('workers',DB.workers); }
+  if(p) DB.projects = p;
+  if(a) DB.attendance = a;
+  if(s) DB.settings = {...DB.settings,...s};
+}
+
+// ═══════════════════════════════════════════════════
+//  PIN LOGIN
+// ═══════════════════════════════════════════════════
+let selectedRole = 'admin';
+function selectRole(r){ selectedRole=r; pinBuffer=''; updatePinDots();
+  document.getElementById('role-admin').classList.toggle('sel',r==='admin');
+  document.getElementById('role-supervisor').classList.toggle('sel',r==='supervisor');
+  document.getElementById('pinError').textContent='';
+}
+function pinKey(n){ if(pinBuffer.length>=4)return; pinBuffer+=n; updatePinDots(); if(pinBuffer.length===4)checkPin(); }
+function pinDel(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); document.getElementById('pinError').textContent=''; }
+function updatePinDots(){ for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled',i<pinBuffer.length); }
+function checkPin(){
+  const correct = selectedRole==='admin' ? DB.settings.adminPin : DB.settings.supervisorPin;
+  if(pinBuffer===correct){ currentUser=selectedRole; currentRole=selectedRole; enterApp(); }
+  else { document.getElementById('pinError').textContent='Incorrect PIN. Try again.'; pinBuffer=''; updatePinDots(); }
+}
+function enterApp(){ showScreen('dash'); renderDash(); }
+function logout(){ showScreen('pin'); pinBuffer=''; updatePinDots(); currentUser=null; }
+
+// ═══════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════
+const SCREENS = ['dash','att','workers','payroll','settings'];
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{ s.classList.add('hidden'); s.classList.remove('slide-left'); });
+  const el = document.getElementById('screen-'+id);
+  if(el){ el.classList.remove('hidden'); el.classList.remove('slide-left'); }
+  currentScreen = id;
+}
+function navigate(id){
+  showScreen(id);
+  if(id==='dash') renderDash();
+  else if(id==='att') renderAtt();
+  else if(id==='workers') renderWorkers();
+  else if(id==='payroll') renderPayrollList();
+  else if(id==='settings') renderSettings();
+}
+function goBack(){ navigate(prevScreen||'dash'); }
+function pushDetail(screen, renderFn){ prevScreen=currentScreen; showScreen(screen); renderFn(); }
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+function initials(name){ return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function fmtNum(n){ return Number(n).toLocaleString(); }
+function calcWages(w, a){ return ((Number(a.days)||1)*w.fee)+((Number(a.ot)||0)*w.ot_rate); }
+function getCategories(){ return ['all',...new Set(DB.workers.filter(w=>w.status==='active').map(w=>w.cat))]; }
+function getProjAtt(pid){ if(!DB.attendance[pid]) DB.attendance[pid]={}; return DB.attendance[pid]; }
+function getWorkerAtt(pid,wid){ const pa=getProjAtt(pid); if(!pa[wid]) pa[wid]={present:false,days:1,ot:0,paid:null,altmomo:''}; return pa[wid]; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function showModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function closeModalBg(e,id){ if(e.target===document.getElementById(id)) closeModal(id); }
+function avatarColor(cat){
+  const m={'Technician':'#d0e8d0','Welder':'#fdecc8','Electrician':'#e8f5e8','S.Technician':'#e8eefd','Helper':'#f0f0f0','Helper/BNR':'#fce8e8','Machine rental':'#fff3cd'};
+  return m[cat]||'#e0e0e0';
+}
+function avatarTextColor(cat){
+  const m={'Technician':'#1a3a1a','Welder':'#c07010','Electrician':'#2a7a2a','S.Technician':'#3030a0','Helper':'#555','Helper/BNR':'#aa2222','Machine rental':'#996600'};
+  return m[cat]||'#444';
+}
+
+// ═══════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════
+function renderDash(){
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  const el = document.getElementById('dash-content');
+  const activeW = DB.workers.filter(w=>w.status==='active').length;
+  // compute totals across all projects
+  let grandTotal=0, totalPresent=0;
+  const catTotals={};
+  DB.projects.forEach(p=>{
+    const pa=getProjAtt(p.id);
+    DB.workers.forEach(w=>{
+      const a=pa[w.id];
+      if(a&&a.present){ totalPresent++; const wages=calcWages(w,a); grandTotal+=wages; catTotals[w.cat]=(catTotals[w.cat]||0)+wages; }
+    });
+  });
+  const maxCat=Math.max(1,...Object.values(catTotals));
+  const catBars=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>
+    `<div class="h-bar-row"><span class="h-bar-lbl">${cat.replace('/BNR','')}</span><div class="h-bar-bg"><div class="h-bar-fill" style="width:${Math.round(val/maxCat*100)}%"></div></div><span class="h-bar-val">${Math.round(val/1000)}K</span></div>`
+  ).join('');
+  const projCards=DB.projects.length?DB.projects.slice().reverse().slice(0,5).map(p=>{
+    const pa=getProjAtt(p.id);
+    let pTotal=0,pPresent=0;
+    DB.workers.forEach(w=>{ const a=pa[w.id]; if(a&&a.present){pPresent++;pTotal+=calcWages(w,a);} });
+    return `<div class="period-card" onclick="openPeriodDetail('${p.id}')">
+      <div class="period-info"><div class="period-name">${p.name}</div><div class="period-meta">${p.project||''}${pPresent?' · '+pPresent+' workers':''}</div></div>
+      <div style="text-align:right"><div class="period-amt" style="color:var(--green2)">${fmtNum(pTotal)}</div><div style="font-size:10px;color:var(--muted)">RWF</div></div>
+    </div>`;
+  }).join(''):`<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No periods yet</div><div class="empty-sub">Tap + to create your first pay period</div></div>`;
+
+  el.innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-n g">${fmtNum(grandTotal)}</div><div class="stat-l">Total wages (RWF)</div></div>
+      <div class="stat-card"><div class="stat-n">${activeW}</div><div class="stat-l">Active workers</div></div>
+      <div class="stat-card"><div class="stat-n o">${DB.projects.length}</div><div class="stat-l">Pay periods</div></div>
+      <div class="stat-card"><div class="stat-n g">${totalPresent}</div><div class="stat-l">Total attendances</div></div>
+    </div>
+    ${catBars?`<div class="sec-lbl">Cost by category</div><div class="card">${catBars}</div>`:''}
+    <div class="sec-lbl">Recent periods</div>
+    ${projCards}
+    <div style="height:20px"></div>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  ATTENDANCE
+// ═══════════════════════════════════════════════════
+function renderAtt(){
+  renderProjTabs();
+  if(!currentProjId && DB.projects.length) currentProjId=DB.projects[DB.projects.length-1].id;
+  renderCatTabs('att-cat-tabs', cat=>{ attCatFilter=cat; renderAttList(); });
+  renderAttList();
+}
+function renderProjTabs(){
+  const el=document.getElementById('att-proj-tabs');
+  if(!DB.projects.length){ el.innerHTML=`<button class="proj-tab active" onclick="showModal('modal-newperiod')">＋ New period</button>`; document.getElementById('att-period-lbl').textContent='No periods'; return; }
+  el.innerHTML=DB.projects.map(p=>`<button class="proj-tab${p.id===currentProjId?' active':''}" onclick="selectProj('${p.id}')">${p.name}</button>`).join('')+`<button class="proj-tab" onclick="showModal('modal-newperiod')">＋</button>`;
+  const cur=DB.projects.find(p=>p.id===currentProjId);
+  document.getElementById('att-period-lbl').textContent=cur?(cur.project||cur.name):'';
+}
+function selectProj(id){ currentProjId=id; renderProjTabs(); renderAttList(); }
+function renderCatTabs(elId, onSelect){
+  const cats=getCategories();
+  const currentFilter=elId.includes('att')?attCatFilter:workerCatFilter;
+  document.getElementById(elId).innerHTML=cats.map(c=>`<button class="cat-tab${c===currentFilter?' active':''}" onclick="(${onSelect.toString()})('${c}');document.querySelectorAll('#${elId} .cat-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">${c==='all'?'All':c}</button>`).join('');
+}
+function getFilteredWorkers(catFilter,searchId){
+  const q=(document.getElementById(searchId)||{value:''}).value.toLowerCase();
+  return DB.workers.filter(w=>w.status==='active'&&(catFilter==='all'||w.cat===catFilter)&&(!q||w.name.toLowerCase().includes(q)));
+}
+function renderAttList(){
+  if(!currentProjId){ document.getElementById('att-list').innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No period selected</div><div class="empty-sub">Create a pay period first using the + button.</div></div>`; return; }
+  const workers=getFilteredWorkers(attCatFilter,'att-search');
+  const pa=getProjAtt(currentProjId);
+  let tp=0,ta=0,tot=0,tot_ot=0;
+  DB.workers.filter(w=>w.status==='active').forEach(w=>{ const a=pa[w.id]; if(a&&a.present){tp++;tot+=calcWages(w,a);tot_ot+=Number(a.ot)||0;}else ta++; });
+  document.getElementById('att-stat-p').textContent=tp;
+  document.getElementById('att-stat-a').textContent=ta;
+  document.getElementById('att-stat-ot').textContent=tot_ot;
+  document.getElementById('att-stat-tot').textContent=Math.round(tot/1000)+'K';
+  const el=document.getElementById('att-list');
+  if(!workers.length){ el.innerHTML=`<div class="empty"><div class="empty-sub">No workers match filter.</div></div>`; return; }
+  el.innerHTML=workers.map(w=>{
+    const a=getWorkerAtt(currentProjId,w.id);
+    const wages=a.present?calcWages(w,a):0;
+    return `<div class="worker-card${a.present?' present':''}">
+      <div class="avatar" style="background:${avatarColor(w.cat)};color:${avatarTextColor(w.cat)}">${initials(w.name)}</div>
+      <div class="winfo" onclick="openAttDetail(${w.id})">
+        <div class="wname">${w.name}</div>
+        <div class="wcat">${w.cat} · ${fmtNum(w.fee)}/day${a.present?' · <span style="color:var(--green2);font-weight:600">'+fmtNum(wages)+' RWF</span>':''}</div>
+      </div>
+      <label class="toggle"><input type="checkbox" ${a.present?'checked':''} onchange="toggleWorker(${w.id},this.checked)"><span class="toggle-slider"></span></label>
+    </div>`;
+  }).join('');
+}
+function toggleWorker(wid,v){
+  const a=getWorkerAtt(currentProjId,wid);
+  a.present=v; if(v&&!a.days) a.days=1;
+  saveDB(); renderAttList();
+}
+function openAttDetail(wid){
+  const w=DB.workers.find(x=>x.id===wid);
+  const a=getWorkerAtt(currentProjId,wid);
+  attDetailWorkerId=wid;
+  document.getElementById('ad-name').textContent=w.name;
+  const wages=calcWages(w,a);
+  const paid=a.paid!=null?a.paid:wages;
+  document.getElementById('ad-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="input-group"><label>Days worked</label><input class="input-field" id="ad-days" type="number" min="1" max="31" value="${a.days||1}"></div>
+      <div class="input-group"><label>OT hours</label><input class="input-field" id="ad-ot" type="number" min="0" step="0.5" value="${a.ot||0}"></div>
+      <div class="input-group"><label>Total wages</label><input class="input-field" id="ad-wages" value="${fmtNum(wages)}" disabled style="color:var(--green2);font-weight:600"></div>
+      <div class="input-group"><label>Paid (RWF)</label><input class="input-field" id="ad-paid" type="number" min="0" value="${paid}"></div>
+    </div>
+    <div class="input-group"><label>Alt. MoMo name</label><input class="input-field" id="ad-altmomo" value="${a.altmomo||w.altmomo||'N/A'}"></div>
+    <div class="kv-row"><span class="kv-key">MoMo number</span><span class="kv-val" style="font-family:'DM Mono',monospace">${w.momo}</span></div>`;
+  // live wage calc
+  const upd=()=>{
+    const days=Number(document.getElementById('ad-days').value)||1;
+    const ot=Number(document.getElementById('ad-ot').value)||0;
+    document.getElementById('ad-wages').value=fmtNum(days*w.fee+ot*w.ot_rate);
+  };
+  setTimeout(()=>{ document.getElementById('ad-days').oninput=upd; document.getElementById('ad-ot').oninput=upd; },50);
+  showModal('modal-att-detail');
+}
+function saveAttDetail(){
+  const a=getWorkerAtt(currentProjId,attDetailWorkerId);
+  const w=DB.workers.find(x=>x.id===attDetailWorkerId);
+  a.days=Number(document.getElementById('ad-days').value)||1;
+  a.ot=Number(document.getElementById('ad-ot').value)||0;
+  const wages=calcWages(w,a);
+  a.paid=Number(document.getElementById('ad-paid').value)??wages;
+  a.altmomo=document.getElementById('ad-altmomo').value;
+  saveDB(); closeModal('modal-att-detail'); renderAttList(); toast('Saved ✓');
+}
+function markAllVisible(){ getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ const a=getWorkerAtt(currentProjId,w.id); a.present=true; if(!a.days)a.days=1; }); saveDB(); renderAttList(); toast('All marked present'); }
+function clearVisible(){ if(!confirm('Clear attendance for visible workers?'))return; getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ DB.attendance[currentProjId][w.id]={present:false,days:1,ot:0,paid:null,altmomo:''}; }); saveDB(); renderAttList(); }
+
+// ═══════════════════════════════════════════════════
+//  WORKERS
+// ═══════════════════════════════════════════════════
+function renderWorkers(){
+  const active=DB.workers.filter(w=>w.status==='active').length;
+  document.getElementById('workers-count').textContent=`${active} active · ${DB.workers.length} total`;
+  renderCatTabs('workers-cat-tabs', cat=>{ workerCatFilter=cat; renderWorkerList(); });
+  renderWorkerList();
+}
+function renderWorkerList(){
+  const workers=getFilteredWorkers(workerCatFilter,'workers-search');
+  document.getElementById('workers-list').innerHTML=workers.length?workers.map(w=>`
+    <div class="worker-card${w.status==='inactive'?' absent':''}" onclick="openWorkerDetail(${w.id})">
+      <div class="avatar" style="background:${avatarColor(w.cat)};color:${avatarTextColor(w.cat)}">${initials(w.name)}</div>
+      <div class="winfo">
+        <div class="wname">${w.name}</div>
+        <div class="wcat">${w.cat} · ${fmtNum(w.fee)} RWF/day</div>
+      </div>
+      <span class="badge ${w.status==='active'?'badge-green':'badge-gray'}">${w.status}</span>
+    </div>`).join(''):`<div class="empty"><div class="empty-sub">No workers found.</div></div>`;
+}
+function openWorkerDetail(id){ currentWorkerId=id; pushDetail('worker-detail',renderWorkerDetail); }
+function renderWorkerDetail(){
+  const w=DB.workers.find(x=>x.id===currentWorkerId);
+  if(!w) return;
+  document.getElementById('wd-title').textContent=w.name;
+  document.getElementById('wd-edit-btn').style.display=currentRole==='admin'?'':'none';
+  // compute history
+  let totalPaid=0,totalDays=0,periods=0;
+  const history=DB.projects.map(p=>{
+    const a=(DB.attendance[p.id]||{})[w.id];
+    if(!a||!a.present) return null;
+    const wages=calcWages(w,a);
+    const paid=a.paid!=null?a.paid:wages;
+    totalPaid+=paid; totalDays+=Number(a.days)||1; periods++;
+    return {p,a,wages,paid};
+  }).filter(Boolean).reverse();
+  document.getElementById('wd-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div class="avatar" style="width:54px;height:54px;font-size:18px;background:${avatarColor(w.cat)};color:${avatarTextColor(w.cat)}">${initials(w.name)}</div>
+      <div><div style="font-size:18px;font-weight:700">${w.name}</div><div style="font-size:13px;color:var(--muted)">${w.cat}</div></div>
+      <span class="badge ${w.status==='active'?'badge-green':'badge-gray'}" style="margin-left:auto">${w.status}</span>
+    </div>
+    <div class="stat-grid" style="margin-bottom:14px;">
+      <div class="stat-card"><div class="stat-n g" style="font-size:16px">${fmtNum(w.fee)}</div><div class="stat-l">Daily rate (RWF)</div></div>
+      <div class="stat-card"><div class="stat-n o" style="font-size:16px">${fmtNum(w.ot_rate)}</div><div class="stat-l">OT rate (RWF/hr)</div></div>
+      <div class="stat-card"><div class="stat-n g" style="font-size:16px">${fmtNum(totalPaid)}</div><div class="stat-l">Total paid (RWF)</div></div>
+      <div class="stat-card"><div class="stat-n" style="font-size:16px">${totalDays}</div><div class="stat-l">Total days worked</div></div>
+    </div>
+    <div class="card">
+      <div class="kv-row"><span class="kv-key">MoMo number</span><span class="kv-val" style="font-family:'DM Mono',monospace">${w.momo}</span></div>
+      <div class="kv-row"><span class="kv-key">Alt. MoMo name</span><span class="kv-val">${w.altmomo||'N/A'}</span></div>
+    </div>
+    <div class="sec-lbl">Pay history (${periods} periods)</div>
+    ${history.length?history.map(({p,a,wages,paid})=>`
+      <div class="period-card">
+        <div class="period-info"><div class="period-name">${p.name}</div><div class="period-meta">${p.project||''} · ${a.days} days${a.ot>0?' · '+a.ot+'h OT':''}</div></div>
+        <div style="text-align:right"><div class="period-amt" style="color:var(--green2)">${fmtNum(paid)}</div><div style="font-size:10px;color:var(--muted)">${paid<wages?'partial':'paid'}</div></div>
+      </div>`).join(''):`<div class="empty" style="padding:20px"><div class="empty-sub">No pay history yet.</div></div>`}
+    <div style="height:20px"></div>`;
+}
+function editCurrentWorker(){
+  const w=DB.workers.find(x=>x.id===currentWorkerId);
+  if(!w) return;
+  document.getElementById('aw-title').textContent='Edit Worker';
+  document.getElementById('aw-id').value=w.id;
+  document.getElementById('aw-name').value=w.name;
+  document.getElementById('aw-cat').value=w.cat;
+  document.getElementById('aw-fee').value=w.fee;
+  document.getElementById('aw-ot').value=w.ot_rate;
+  document.getElementById('aw-momo').value=w.momo;
+  document.getElementById('aw-altmomo').value=w.altmomo||'';
+  document.getElementById('aw-status').value=w.status;
+  showModal('modal-addworker');
+}
+function saveWorker(){
+  const id=document.getElementById('aw-id').value;
+  const data={ name:document.getElementById('aw-name').value.trim(), cat:document.getElementById('aw-cat').value, fee:Number(document.getElementById('aw-fee').value), ot_rate:Number(document.getElementById('aw-ot').value), momo:document.getElementById('aw-momo').value.trim(), altmomo:document.getElementById('aw-altmomo').value.trim()||'N/A', status:document.getElementById('aw-status').value };
+  if(!data.name||!data.fee){ toast('Please fill all required fields'); return; }
+  if(id){ const w=DB.workers.find(x=>x.id==id); if(w) Object.assign(w,data); }
+  else { data.id=Date.now(); DB.workers.push(data); }
+  saveDB(); closeModal('modal-addworker');
+  document.getElementById('aw-id').value=''; document.getElementById('aw-title').textContent='Add Worker';
+  renderWorkers(); toast('Worker saved ✓');
+  if(id) renderWorkerDetail();
+}
+
+// ═══════════════════════════════════════════════════
+//  PROJECTS / PAY PERIODS
+// ═══════════════════════════════════════════════════
+function createPeriod(){
+  const name=document.getElementById('np-name').value.trim();
+  const project=document.getElementById('np-project').value.trim();
+  if(!name){ toast('Please enter a period name'); return; }
+  const p={ id:'p'+Date.now(), name, project, startDate:document.getElementById('np-start').value, endDate:document.getElementById('np-end').value, preparedBy:document.getElementById('np-prep').value||DB.settings.prepared, createdAt:Date.now() };
+  DB.projects.push(p); currentProjId=p.id;
+  saveDB(); closeModal('modal-newperiod');
+  document.getElementById('np-name').value=''; document.getElementById('np-project').value='';
+  toast('Period created ✓'); renderDash();
+}
+function openPeriodDetail(id){ currentPeriodId=id; pushDetail('period-detail',renderPeriodDetail); }
+function renderPeriodDetail(){
+  const p=DB.projects.find(x=>x.id===currentPeriodId);
+  if(!p) return;
+  document.getElementById('pd-title').textContent=p.name;
+  const pa=getProjAtt(p.id);
+  const present=DB.workers.filter(w=>w.status==='active'&&pa[w.id]&&pa[w.id].present);
+  let gt=0,gp=0;
+  present.forEach(w=>{ const a=pa[w.id]; const wages=calcWages(w,a); const paid=a.paid!=null?a.paid:wages; gt+=wages;gp+=paid; });
+  const gu=gt-gp;
+  document.getElementById('pd-content').innerHTML=`
+    <div class="card" style="margin-bottom:12px">
+      <div class="kv-row"><span class="kv-key">Project</span><span class="kv-val">${p.project||'–'}</span></div>
+      <div class="kv-row"><span class="kv-key">Period</span><span class="kv-val">${p.startDate||''} – ${p.endDate||''}</span></div>
+      <div class="kv-row"><span class="kv-key">Prepared by</span><span class="kv-val">${p.preparedBy||'–'}</span></div>
+      <div class="kv-row"><span class="kv-key">Workers</span><span class="kv-val">${present.length}</span></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-n g" style="font-size:15px">${fmtNum(gt)}</div><div class="stat-l">Total wages (RWF)</div></div>
+      <div class="stat-card"><div class="stat-n g" style="font-size:15px">${fmtNum(gp)}</div><div class="stat-l">Paid (RWF)</div></div>
+      ${gu>0?`<div class="stat-card"><div class="stat-n r" style="font-size:15px">${fmtNum(gu)}</div><div class="stat-l">Unpaid (RWF)</div></div>`:''}
+    </div>
+    <div class="sec-lbl">Workers (${present.length})</div>
+    ${present.map((w,i)=>{ const a=pa[w.id]; const wages=calcWages(w,a); const paid=a.paid!=null?a.paid:wages;
+      return `<div class="worker-card present" style="cursor:default">
+        <div class="avatar" style="font-size:11px;background:${avatarColor(w.cat)};color:${avatarTextColor(w.cat)}">${initials(w.name)}</div>
+        <div class="winfo"><div class="wname">${w.name}</div><div class="wcat">${w.cat} · ${a.days||1}d${a.ot>0?' · '+a.ot+'h OT':''}</div></div>
+        <div style="text-align:right"><div style="font-size:12px;font-weight:700;color:var(--green2);font-family:'DM Mono',monospace">${fmtNum(paid)}</div><div style="font-size:10px;color:var(--muted)">${paid<wages?'partial':'full'}</div></div>
+      </div>`;}).join('')}
+    <div style="height:14px"></div>
+    <button class="btn btn-orange" onclick="exportCurrentPeriod()">⬇ Export Excel (.xlsx)</button>
+    <button class="btn btn-primary" style="margin-top:8px;background:#0f9d58" onclick="syncPeriodToSheets('${p.id}')">☁ Sync to Google Sheets</button>
+    ${currentRole==='admin'?`<button class="btn btn-ghost" style="width:100%;margin-top:8px;color:var(--red);border-color:var(--red)" onclick="deletePeriod('${p.id}')">Delete period</button>`:''}
+    <div style="height:20px"></div>`;
+}
+function deletePeriod(id){ if(!confirm('Delete this period? This cannot be undone.'))return; DB.projects=DB.projects.filter(p=>p.id!==id); delete DB.attendance[id]; if(currentProjId===id) currentProjId=DB.projects.length?DB.projects[DB.projects.length-1].id:null; saveDB(); goBack(); renderDash(); toast('Period deleted'); }
+
+// ═══════════════════════════════════════════════════
+//  PAYROLL LIST
+// ═══════════════════════════════════════════════════
+function renderPayrollList(){
+  const el=document.getElementById('payroll-list');
+  if(!DB.projects.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">📄</div><div class="empty-title">No payroll periods</div><div class="empty-sub">Create a pay period from the Attendance tab.</div></div>`; return; }
+  const months={};
+  [...DB.projects].reverse().forEach(p=>{
+    const d=p.startDate?new Date(p.startDate):new Date(p.createdAt);
+    const key=d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    if(!months[key]) months[key]=[];
+    const pa=getProjAtt(p.id);
+    let gt=0,cnt=0;
+    DB.workers.forEach(w=>{ const a=pa[w.id]; if(a&&a.present){cnt++;gt+=calcWages(w,a);} });
+    months[key].push({p,gt,cnt});
+  });
+  el.innerHTML=Object.entries(months).map(([month,items])=>`
+    <div class="sec-lbl">${month}</div>
+    ${items.map(({p,gt,cnt})=>`
+      <div class="period-card" onclick="openPeriodDetail('${p.id}')">
+        <div style="width:4px;height:40px;border-radius:2px;background:var(--green2);flex-shrink:0"></div>
+        <div class="period-info"><div class="period-name">${p.name}</div><div class="period-meta">${p.project||''}${cnt?' · '+cnt+' workers':''}</div></div>
+        <div style="text-align:right">
+          <div class="period-amt" style="color:var(--green2)">${Math.round(gt/1000)}K</div>
+          <div style="font-size:10px;color:var(--muted)">RWF</div>
+        </div>
+      </div>`).join('')}`).join('')+'<div style="height:20px"></div>';
+}
+
+// ═══════════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════════
+function renderSettings(){
+  const sheetsCfg = DB.settings.sheetsWebhook||'';
+  document.getElementById('settings-content').innerHTML=`
+    <div class="sec-lbl">☁ Google Sheets Sync</div>
+    <div class="card" style="border-left:3px solid #0f9d58">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Paste your Apps Script Web App URL below. Once set, use <b>☁ Sync to Google Sheets</b> on any period to push payroll data to your sheet instantly.</div>
+      <div class="input-group"><label>Apps Script Webhook URL</label><input class="input-field" id="s-webhook" placeholder="https://script.google.com/macros/s/.../exec" value="${sheetsCfg}"></div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.7">
+        <b>How to get the URL:</b><br>
+        1. Open your Google Sheet → Extensions → Apps Script<br>
+        2. Paste the Apps Script code → Save<br>
+        3. Deploy → New Deployment → Web App<br>
+        4. Set access: <b>Anyone</b> → Deploy → Copy URL<br>
+        5. Paste URL above → Save Settings
+      </div>
+    </div>
+    <div class="sec-lbl">Company</div>
+    <div class="card">
+      <div class="input-group"><label>Company name</label><input class="input-field" id="s-company" value="${DB.settings.company}"></div>
+      <div class="input-group"><label>Default prepared by</label><input class="input-field" id="s-prepared" value="${DB.settings.prepared}"></div>
+    </div>
+    ${currentRole==='admin'?`
+    <div class="sec-lbl">Security</div>
+    <div class="card">
+      <div class="input-group"><label>Admin PIN (4 digits)</label><input class="input-field" id="s-adminpin" type="password" maxlength="4" value="${DB.settings.adminPin}"></div>
+      <div class="input-group"><label>Supervisor PIN (4 digits)</label><input class="input-field" id="s-suppin" type="password" maxlength="4" value="${DB.settings.supervisorPin}"></div>
+    </div>`:''}
+    <div class="sec-lbl">Approvers</div>
+    <div class="card" id="s-approvers">
+      ${DB.settings.approvers.map((a,i)=>`<div class="kv-row"><input class="input-field" value="${a}" id="s-ap-${i}" style="flex:1;margin-right:8px"><button class="btn btn-ghost btn-sm btn-danger" onclick="removeApprover(${i})">✕</button></div>`).join('')}
+      <button class="btn btn-ghost btn-sm" onclick="addApprover()" style="margin-top:6px">＋ Add approver</button>
+    </div>
+    <div style="height:12px"></div>
+    <button class="btn btn-primary" onclick="saveSettings()">Save settings</button>
+    <div style="height:20px"></div>`;
+}
+function addApprover(){ DB.settings.approvers.push('Name'); renderSettings(); }
+function removeApprover(i){ DB.settings.approvers.splice(i,1); renderSettings(); }
+function saveSettings(){
+  DB.settings.sheetsWebhook = document.getElementById('s-webhook').value.trim();
+  DB.settings.company=document.getElementById('s-company').value;
+  DB.settings.prepared=document.getElementById('s-prepared').value;
+  if(currentRole==='admin'){
+    const ap=document.getElementById('s-adminpin').value;
+    const sp=document.getElementById('s-suppin').value;
+    if(ap.length===4) DB.settings.adminPin=ap;
+    if(sp.length===4) DB.settings.supervisorPin=sp;
+    PINS.admin=DB.settings.adminPin; PINS.supervisor=DB.settings.supervisorPin;
+  }
+  DB.settings.approvers=DB.settings.approvers.map((_,i)=>document.getElementById('s-ap-'+i)?.value||_);
+  saveDB(); toast('Settings saved ✓');
+}
+
+// ═══════════════════════════════════════════════════
+//  XLSX EXPORT
+// ═══════════════════════════════════════════════════
+function exportCurrentPeriod(){
+  const p=DB.projects.find(x=>x.id===currentPeriodId);
+  if(!p){toast('No period selected');return;}
+  const pa=getProjAtt(p.id);
+  const present=DB.workers.filter(w=>w.status==='active'&&pa[w.id]&&pa[w.id].present);
+  _buildXLSX(p,present,pa);
+}
+function _buildXLSX(p,present,pa){
+  const C={ORANGE:'FFE8A020',DK_GREEN:'FF1A3A1A',MD_GREEN:'FF2A7A2A',LT_GREEN:'FFD0E8D0',ROW_EVEN:'FFF0F7F0',WHITE:'FFFFFFFF',RED:'FFCC0000',ORA_LIGHT:'FFFDECC8',BLACK:'FF000000',GRAY:'FF333333'};
+  const strs=[]; const si=v=>{let i=strs.indexOf(v);if(i<0){i=strs.length;strs.push(v);}return i;};
+  const fills=[{type:'none'},{type:'gray125'},{type:'solid',fg:C.ORANGE},{type:'solid',fg:C.DK_GREEN},{type:'solid',fg:C.LT_GREEN},{type:'solid',fg:C.ROW_EVEN},{type:'solid',fg:C.ORA_LIGHT},{type:'solid',fg:C.WHITE}];
+  const FILL={NONE:0,ORANGE:2,DK_GREEN:3,LT_GREEN:4,ROW_EVEN:5,ORA_LIGHT:6,WHITE:7};
+  const fonts=[{sz:10,bold:false,color:C.BLACK},{sz:14,bold:true,color:C.DK_GREEN},{sz:10,bold:true,color:C.DK_GREEN},{sz:13,bold:true,color:C.WHITE},{sz:9,bold:true,color:C.WHITE},{sz:10,bold:true,color:C.BLACK},{sz:10,bold:true,color:C.MD_GREEN},{sz:10,bold:true,color:C.RED},{sz:10,bold:false,color:C.GRAY},{sz:9,bold:false,color:C.BLACK}];
+  const FONT={DEF:0,CO:1,LBL:2,TITLE:3,HDR:4,BOLD:5,GREEN:6,RED:7,NOTE:8,SM:9};
+  const bT={style:'thin',color:C.BLACK};
+  const borders=[{},{left:bT,right:bT,top:bT,bottom:bT}];
+  const BDR={NONE:0,ALL:1};
+  const xfs=[]; function xf(fid,fili,bi,ha='left',w=false,nf=0){xfs.push({fontId:fid,fillId:fili,borderId:bi,hAlign:ha,vAlign:'center',wrap:w,numFmtId:nf});return xfs.length-1;}
+  const X={DEF:xf(FONT.DEF,FILL.NONE,BDR.NONE),CO:xf(FONT.CO,FILL.NONE,BDR.NONE),LBL:xf(FONT.LBL,FILL.NONE,BDR.NONE),TITLE:xf(FONT.TITLE,FILL.ORANGE,BDR.NONE,'center'),HDR:xf(FONT.HDR,FILL.DK_GREEN,BDR.ALL,'center',true),ODD:xf(FONT.DEF,FILL.WHITE,BDR.ALL,'center'),EVEN:xf(FONT.DEF,FILL.ROW_EVEN,BDR.ALL,'center'),ODD_L:xf(FONT.DEF,FILL.WHITE,BDR.ALL,'left'),EVEN_L:xf(FONT.DEF,FILL.ROW_EVEN,BDR.ALL,'left'),ODD_R:xf(FONT.DEF,FILL.WHITE,BDR.ALL,'right',false,4),EVEN_R:xf(FONT.DEF,FILL.ROW_EVEN,BDR.ALL,'right',false,4),PAID_O:xf(FONT.GREEN,FILL.WHITE,BDR.ALL,'right',false,4),PAID_E:xf(FONT.GREEN,FILL.ROW_EVEN,BDR.ALL,'right',false,4),UNPO:xf(FONT.RED,FILL.WHITE,BDR.ALL,'right',false,4),UNPE:xf(FONT.RED,FILL.ROW_EVEN,BDR.ALL,'right',false,4),TOT:xf(FONT.BOLD,FILL.LT_GREEN,BDR.ALL,'right',false,4),TOT_G:xf(FONT.GREEN,FILL.LT_GREEN,BDR.ALL,'right',false,4),TOT_R:xf(FONT.RED,FILL.LT_GREEN,BDR.ALL,'right',false,4),TOT_L:xf(FONT.LBL,FILL.LT_GREEN,BDR.ALL,'right'),NOTE:xf(FONT.NOTE,FILL.NONE,BDR.NONE)};
+  const rows=[]; const merges=[]; let r=0;
+  function mc(r1,c1,r2,c2){merges.push({r1,c1,r2,c2});}
+  function sc(v,s){return{t:'s',v:String(v),s};}
+  function nc(v,s){return{t:'n',v:Number(v)||0,s};}
+  function ec(s){return{t:'s',v:'',s};}
+  function addRow(cells){rows.push(cells);}
+  addRow([sc(DB.settings.company,X.CO)]);mc(r,0,r,11);r++;
+  addRow([sc('HOME ID',X.CO)]);mc(r,0,r,11);r++;r++;
+  addRow([sc('DAILY WAGE PAYROLL REGISTER',X.TITLE)]);mc(r,0,r,11);r++;
+  addRow([sc('Technicians  |  Electricians  |  Helpers',X.LBL)]);mc(r,0,r,11);r++;r++;
+  addRow([sc('Date:',X.LBL),sc(new Date().toLocaleDateString('en-GB'),X.DEF)]);mc(r,1,r,3);r++;r++;
+  addRow([sc('Pay Period:',X.LBL),sc(p.name,X.DEF),ec(X.DEF),sc(p.project||'',X.LBL),ec(X.DEF),ec(X.DEF),ec(X.DEF),ec(X.DEF),ec(X.DEF),sc('Prepared by:',X.LBL),sc(p.preparedBy||'',X.DEF)]);mc(r,1,r,2);mc(r,3,r,7);mc(r,10,r,11);r++;r++;
+  const HDRS=['No.','Full Name','Category','Days\nWorked','Daily Fee\n(RWF)','Over Time\n(hr)','Over Time Rate\n(RWF/hr)','Total Wages\n(RWF)','Paid wages\n(Rwf)','Unpaid wages\n(Rwf)','Primary MoMo\nNumber','Alt. MoMo\nReg. Name'];
+  addRow(HDRS.map(h=>sc(h,X.HDR)));r++;
+  let gt=0,gp=0,gu=0;
+  present.forEach((w,i)=>{
+    const a=pa[w.id];const wages=calcWages(w,a);const paid=a.paid!=null?a.paid:wages;const unpaid=Math.max(0,wages-paid);
+    gt+=wages;gp+=paid;gu+=unpaid;
+    const even=i%2!==0;
+    const ctr=even?X.EVEN:X.ODD,lft=even?X.EVEN_L:X.ODD_L,rgt=even?X.EVEN_R:X.ODD_R,pS=even?X.PAID_E:X.PAID_O,uS=even?X.UNPE:X.UNPO;
+    addRow([sc(i+1,ctr),sc(w.name,lft),sc(w.cat,ctr),sc(a.days||1,ctr),nc(w.fee,rgt),sc(a.ot>0?a.ot:'-',ctr),nc(w.ot_rate,rgt),nc(wages,rgt),nc(paid,pS),unpaid>0?nc(unpaid,uS):sc('-',ctr),sc(w.momo,ctr),sc(a.altmomo||w.altmomo||'N/A',ctr)]);r++;
+  });
+  addRow([ec(X.TOT_L),ec(X.TOT_L),ec(X.TOT_L),ec(X.TOT_L),ec(X.TOT_L),ec(X.TOT_L),sc('Total',X.TOT_L),nc(gt,X.TOT),nc(gp,X.TOT_G),gu>0?nc(gu,X.TOT_R):sc('-',X.TOT_L),ec(X.TOT_L),ec(X.TOT_L)]);r+=2;
+  addRow([sc('Approved by:',X.LBL)]);r++;
+  DB.settings.approvers.forEach((a,i)=>{addRow([sc(`${i+1}. ${a}`,X.NOTE)]);mc(r,0,r,4);r++;});
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  const ssXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${strs.length}" uniqueCount="${strs.length}">${strs.map(s=>`<si><t xml:space="preserve">${esc(s)}</t></si>`).join('')}</sst>`;
+  function fillXml(f){if(f.type==='none')return'<fill><patternFill patternType="none"/></fill>';if(f.type==='gray125')return'<fill><patternFill patternType="gray125"/></fill>';return`<fill><patternFill patternType="solid"><fgColor rgb="${f.fg}"/></patternFill></fill>`;}
+  function fontXml(f){return`<font>${f.bold?'<b/>':''}<sz val="${f.sz}"/><color rgb="${f.color}"/><name val="Calibri"/></font>`;}
+  function bdrXml(b){if(!b.left)return'<border><left/><right/><top/><bottom/><diagonal/></border>';return`<border><left style="${b.left.style}"><color rgb="${b.left.color}"/></left><right style="${b.right.style}"><color rgb="${b.right.color}"/></right><top style="${b.top.style}"><color rgb="${b.top.color}"/></top><bottom style="${b.bottom.style}"><color rgb="${b.bottom.color}"/></bottom><diagonal/></border>`;}
+  function xfXml(x){return`<xf numFmtId="${x.numFmtId||0}" fontId="${x.fontId}" fillId="${x.fillId}" borderId="${x.borderId}" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="${x.hAlign}" vertical="${x.vAlign}"${x.wrap?' wrapText="1"':''}/></xf>`;}
+  const stylesXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="4" formatCode="#,##0"/></numFmts><fonts count="${fonts.length}">${fonts.map(fontXml).join('')}</fonts><fills count="${fills.length}">${fills.map(fillXml).join('')}</fills><borders count="${borders.length}">${borders.map(bdrXml).join('')}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.map(xfXml).join('')}</cellXfs></styleSheet>`;
+  const colW=[4,22,14,7,10,8,12,12,12,12,14,16];
+  const colsXml=colW.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
+  function ca(r,c){return`${String.fromCharCode(65+c)}${r+1}`;}
+  const rowsXml=rows.map((cells,ri)=>{if(!cells||!cells.length)return`<row r="${ri+1}" ht="15"/>`;return`<row r="${ri+1}" ht="18">${cells.map((cell,ci)=>{if(!cell)return'';const addr=ca(ri,ci);return cell.t==='n'?`<c r="${addr}" s="${cell.s}" t="n"><v>${cell.v}</v></c>`:`<c r="${addr}" s="${cell.s}" t="s"><v>${si(cell.v||'')}</v></c>`;}).join('')}</row>`;}).join('');
+  const mergesXml=merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${ca(m.r1,m.c1)}:${ca(m.r2,m.c2)}"/>`).join('')}</mergeCells>`:'';
+  const sheetXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${colsXml}</cols><sheetData>${rowsXml}</sheetData>${mergesXml}</worksheet>`;
+  const wbXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Salary Data" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const cTypeXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+  const rootRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  function doZip(){
+    const zip=new JSZip();
+    zip.file('[Content_Types].xml',cTypeXml);zip.file('_rels/.rels',rootRels);zip.file('xl/workbook.xml',wbXml);zip.file('xl/_rels/workbook.xml.rels',wbRels);zip.file('xl/worksheets/sheet1.xml',sheetXml);zip.file('xl/sharedStrings.xml',ssXml);zip.file('xl/styles.xml',stylesXml);
+    zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}).then(blob=>{
+      const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`HomeID_${p.name.replace(/[^a-z0-9]/gi,'_')}.xlsx`;a.click();URL.revokeObjectURL(url);toast('Exported ✓');
+    });
+  }
+  if(!window.JSZip){const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';s.onload=doZip;document.head.appendChild(s);}else doZip();
+}
+
+// ═══════════════════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ═══════════════════════════════════════════════════
+async function syncPeriodToSheets(pid) {
+  const webhookUrl = DB.settings.sheetsWebhook;
+  if (!webhookUrl) {
+    toast('No webhook URL — add it in Settings ⚙');
+    navigate('settings');
+    return;
+  }
+  const p = DB.projects.find(x => x.id === pid);
+  if (!p) { toast('Period not found'); return; }
+  const pa = getProjAtt(p.id);
+  const present = DB.workers.filter(w => w.status === 'active' && pa[w.id] && pa[w.id].present);
+  if (!present.length) { toast('No attendance recorded for this period'); return; }
+
+  toast('Syncing to Google Sheets…');
+
+  let gt = 0, gp = 0;
+  const rows = present.map((w, i) => {
+    const a = pa[w.id];
+    const wages = calcWages(w, a);
+    const paid = a.paid != null ? a.paid : wages;
+    const unpaid = Math.max(0, wages - paid);
+    gt += wages; gp += paid;
+    return {
+      no: i + 1,
+      name: w.name,
+      category: w.cat,
+      dailyFee: w.fee,
+      otRate: w.ot_rate,
+      momo: w.momo,
+      altMomo: a.altmomo || w.altmomo || 'N/A',
+      daysWorked: a.days || 1,
+      totalOT: a.ot || 0,
+      totalWages: wages,
+      paidAmount: paid,
+      unpaidAmount: unpaid
+    };
+  });
+
+  const payload = {
+    periodName: p.name,
+    project: p.project || '',
+    startDate: p.startDate || '',
+    endDate: p.endDate || '',
+    preparedBy: p.preparedBy || DB.settings.prepared,
+    company: DB.settings.company,
+    approvers: DB.settings.approvers,
+    syncedAt: new Date().toLocaleString('en-RW', { timeZone: 'Africa/Kigali' }),
+    totalWages: gt,
+    totalPaid: gp,
+    totalUnpaid: Math.max(0, gt - gp),
+    workerCount: present.length,
+    rows
+  };
+
+  try {
+    // Apps Script requires no-cors; data still writes successfully
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    toast('Synced to Google Sheets ✓');
+  } catch (e) {
+    toast('Sync failed — check webhook URL in Settings');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+(async()=>{
+  await loadDB();
+  showScreen('pin');
+})();
+</script>
+</body>
+</html>
