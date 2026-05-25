@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Home ID Payroll</title>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -524,7 +524,7 @@ const DEFAULT_WORKERS = [
   {id:62,name:"Rizinde Fabien",cat:"Welder",fee:20000,ot_rate:2000,momo:"0784505201",altmomo:"N/A",status:"active"},
   {id:63,name:"Imani Khaled",cat:"Machine rental",fee:100000,ot_rate:0,momo:"0793523768",altmomo:"N/A",status:"active"},
   {id:64,name:"Xxx Muyizere",cat:"Machine rental",fee:115000,ot_rate:0,momo:"0791540599",altmomo:"N/A",status:"active"},
-  {id:65,name:"Janvier Hagumimana",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0782258264",altmomo:"N/A",status:"active"},
+  {id:65,name:"Janvier Hagumimana",cat:"Helper/BNR",fee:6000,ot_rate:1000,momo:"0782258264",altmomo:"N/A",status:"active"}
 ];
 
 // ── In-memory data store ──
@@ -536,9 +536,7 @@ let DB = {
 };
 
 // ═══════════════════════════════════════════════════
-//  FIREBASE REALTIME DATABASE — Cross-device sync
-//  Replace the firebaseConfig below with your own
-//  from Firebase Console → Project Settings → Your apps
+//  FIREBASE SYNC
 // ═══════════════════════════════════════════════════
 const firebaseConfig = {
   apiKey: "AIzaSyBtL_X_0Mf00chae17fG-vhhFe1OiXzihg",
@@ -547,111 +545,76 @@ const firebaseConfig = {
   projectId: "homeid-payroll",
   storageBucket: "homeid-payroll.firebasestorage.app",
   messagingSenderId: "912567022471",
-  appId: "1:912567022471:web:5326c0f415b599a2905922",
-  measurementId: "G-1ZPSMM0741"
+  appId: "1:912567022471:web:5326c0f415b599a2905922"
 };
-
-let firebaseDB = null;
-let firebaseReady = false;
-
-function initFirebase() {
-  try {
-    if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PASTE_YOUR_API_KEY_HERE") {
-      console.warn("Firebase not configured — using localStorage fallback");
-      firebaseReady = false;
-      return;
-    }
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    firebaseDB = firebase.database();
-    firebaseReady = true;
-    // Listen for real-time changes from other devices
-    firebaseDB.ref('homeid').on('value', snapshot => {
-      const data = snapshot.val();
-      if (!data) return;
-      let changed = false;
-      if (data.workers) { DB.workers = objToArr(data.workers); changed = true; }
-      if (data.projects) { DB.projects = objToArr(data.projects); changed = true; }
-      if (data.attendance) { DB.attendance = data.attendance; changed = true; }
-      if (data.settings) { DB.settings = { ...DB.settings, ...data.settings }; changed = true; }
-      // Re-render the current screen silently if data changed from another device
-      if (changed && currentUser) {
-        if (currentScreen === 'dash') renderDash();
-        else if (currentScreen === 'att') renderAttList();
-        else if (currentScreen === 'payroll') renderPayrollList();
-        else if (currentScreen === 'workers') renderWorkers();
+let fbDB = null;
+function initFirebase(){
+  try{
+    if(typeof firebase==='undefined'){ console.warn('Firebase SDK missing'); return; }
+    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    fbDB = firebase.database();
+    // Real-time listener — updates all devices instantly
+    fbDB.ref('homeid').on('value', function(snap){
+      const d = snap.val();
+      if(!d) return;
+      if(d.workers){ DB.workers = objToArr(d.workers); }
+      if(d.projects){ DB.projects = objToArr(d.projects); }
+      if(d.attendance){ DB.attendance = d.attendance; }
+      if(d.settings){ DB.settings = Object.assign({}, DB.settings, d.settings); }
+      if(currentUser){
+        if(currentScreen==='att') renderAttList();
+        else if(currentScreen==='dash') renderDash();
+        else if(currentScreen==='payroll') renderPayrollList();
+        else if(currentScreen==='workers') renderWorkers();
       }
     });
-    console.log("Firebase connected ✓");
-  } catch(e) {
-    console.warn("Firebase init failed, using localStorage:", e);
-    firebaseReady = false;
-  }
+    console.log('Firebase ready');
+  } catch(e){ console.warn('Firebase failed:', e); }
 }
-
-// localStorage fallback
-function lsSave(k,v){ try{ localStorage.setItem('homeid_'+k, JSON.stringify(v)); }catch(e){} }
-function lsLoad(k){ try{ const v=localStorage.getItem('homeid_'+k); return v?JSON.parse(v):null; }catch(e){return null;} }
-
-// Convert array to object keyed by id (Firebase handles objects better than arrays)
-function arrToObj(arr){ const o={}; arr.forEach(x=>{ o[x.id]=x; }); return o; }
-// Convert object back to array
+function arrToObj(arr){ var o={}; arr.forEach(function(x){ o[String(x.id)]=x; }); return o; }
 function objToArr(obj){ if(!obj) return []; if(Array.isArray(obj)) return obj; return Object.values(obj); }
-
-async function saveDB() {
-  if (firebaseReady && firebaseDB) {
-    try {
-      // Store workers & projects as objects keyed by id — avoids Firebase array truncation
-      const workersObj = arrToObj(DB.workers);
-      const projectsObj = arrToObj(DB.projects);
-      await firebaseDB.ref('homeid').update({
-        workers: workersObj,
-        projects: projectsObj,
+function lsSave(k,v){ try{ localStorage.setItem('homeid_'+k, JSON.stringify(v)); }catch(e){} }
+function lsLoad(k){ try{ var v=localStorage.getItem('homeid_'+k); return v?JSON.parse(v):null; }catch(e){return null;} }
+async function saveDB(){
+  if(fbDB){
+    try{
+      await fbDB.ref('homeid').update({
+        workers: arrToObj(DB.workers),
+        projects: arrToObj(DB.projects),
         attendance: DB.attendance,
         settings: DB.settings
       });
       return;
-    } catch(e) { console.warn("Firebase save failed, falling back:", e); }
+    }catch(e){ console.warn('Firebase save failed',e); }
   }
-  lsSave('workers', DB.workers);
-  lsSave('projects', DB.projects);
-  lsSave('attendance', DB.attendance);
-  lsSave('settings', DB.settings);
+  lsSave('workers',DB.workers); lsSave('projects',DB.projects);
+  lsSave('attendance',DB.attendance); lsSave('settings',DB.settings);
 }
-
-async function loadDB() {
-  if (firebaseReady && firebaseDB) {
-    try {
-      const snap = await firebaseDB.ref('homeid').get();
-      const data = snap.val();
-      if (data) {
-        const loadedWorkers = objToArr(data.workers);
-        // If Firebase has fewer workers than DEFAULT, re-seed to fix corruption
-        if (loadedWorkers.length < DEFAULT_WORKERS.length) {
-          DB.workers = DEFAULT_WORKERS.map(x=>({...x}));
-          await firebaseDB.ref('homeid/workers').set(arrToObj(DB.workers));
-        } else {
-          DB.workers = loadedWorkers;
-        }
-        if (data.projects) DB.projects = objToArr(data.projects);
-        if (data.attendance) DB.attendance = data.attendance;
-        if (data.settings) DB.settings = { ...DB.settings, ...data.settings };
+async function loadDB(){
+  if(fbDB){
+    try{
+      var snap = await fbDB.ref('homeid').get();
+      var d = snap.val();
+      if(d){
+        var loaded = objToArr(d.workers);
+        DB.workers = loaded.length >= DEFAULT_WORKERS.length ? loaded : DEFAULT_WORKERS.map(function(x){return Object.assign({},x);});
+        if(loaded.length < DEFAULT_WORKERS.length) await fbDB.ref('homeid/workers').set(arrToObj(DB.workers));
+        if(d.projects) DB.projects = objToArr(d.projects);
+        if(d.attendance) DB.attendance = d.attendance;
+        if(d.settings) DB.settings = Object.assign({}, DB.settings, d.settings);
         return;
       } else {
-        // Empty database — seed all workers
-        DB.workers = DEFAULT_WORKERS.map(x=>({...x}));
-        await firebaseDB.ref('homeid/workers').set(arrToObj(DB.workers));
+        DB.workers = DEFAULT_WORKERS.map(function(x){return Object.assign({},x);});
+        await fbDB.ref('homeid/workers').set(arrToObj(DB.workers));
         return;
       }
-    } catch(e) { console.warn("Firebase load failed, falling back:", e); }
+    }catch(e){ console.warn('Firebase load failed',e); }
   }
-  const w = lsLoad('workers');
-  const p = lsLoad('projects');
-  const a = lsLoad('attendance');
-  const s = lsLoad('settings');
-  if(w) DB.workers = w; else { DB.workers = DEFAULT_WORKERS.map(x=>({...x})); lsSave('workers',DB.workers); }
-  if(p) DB.projects = p;
-  if(a) DB.attendance = a;
-  if(s) DB.settings = {...DB.settings,...s};
+  var w=lsLoad('workers'), p=lsLoad('projects'), a=lsLoad('attendance'), s=lsLoad('settings');
+  if(w) DB.workers=w; else{ DB.workers=DEFAULT_WORKERS.map(function(x){return Object.assign({},x);}); lsSave('workers',DB.workers); }
+  if(p) DB.projects=p;
+  if(a) DB.attendance=a;
+  if(s) DB.settings=Object.assign({},DB.settings,s);
 }
 
 // ═══════════════════════════════════════════════════
@@ -792,7 +755,7 @@ function renderAttList(){
   const workers=getFilteredWorkers(attCatFilter,'att-search');
   const pa=getProjAtt(currentProjId);
   let tp=0,ta=0,tot=0,tot_ot=0;
-  DB.workers.filter(w=>w.status==='active').forEach(w=>{ const a=pa[String(w.id)]; if(a&&a.present){tp++;tot+=calcWages(w,a);tot_ot+=Number(a.ot)||0;}else ta++; });
+  DB.workers.filter(w=>w.status==='active').forEach(w=>{ const a=pa[w.id]; if(a&&a.present){tp++;tot+=calcWages(w,a);tot_ot+=Number(a.ot)||0;}else ta++; });
   document.getElementById('att-stat-p').textContent=tp;
   document.getElementById('att-stat-a').textContent=ta;
   document.getElementById('att-stat-ot').textContent=tot_ot;
@@ -800,15 +763,15 @@ function renderAttList(){
   const el=document.getElementById('att-list');
   if(!workers.length){ el.innerHTML=`<div class="empty"><div class="empty-sub">No workers match filter.</div></div>`; return; }
   el.innerHTML=workers.map(w=>{
-    const a=getWorkerAtt(currentProjId,String(w.id));
+    const a=getWorkerAtt(currentProjId,w.id);
     const wages=a.present?calcWages(w,a):0;
-    return `<div class="worker-card${a.present?' present':''}" onclick="openAttDetail(${w.id})">
+    return `<div class="worker-card${a.present?' present':''}">
       <div class="avatar" style="background:${avatarColor(w.cat)};color:${avatarTextColor(w.cat)}">${initials(w.name)}</div>
-      <div class="winfo">
+      <div class="winfo" onclick="openAttDetail(String('${w.id}'))">
         <div class="wname">${w.name}</div>
         <div class="wcat">${w.cat} · ${fmtNum(w.fee)}/day${a.present?' · <span style="color:var(--green2);font-weight:600">'+fmtNum(wages)+' RWF</span>':''}</div>
       </div>
-      <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" ${a.present?'checked':''} onchange="toggleWorker(${w.id},this.checked)"><span class="toggle-slider"></span></label>
+      <label class="toggle"><input type="checkbox" ${a.present?'checked':''} onchange="toggleWorker(String('${w.id}'),this.checked)" onclick="event.stopPropagation()"><span class="toggle-slider"></span></label>
     </div>`;
   }).join('');
 }
@@ -819,81 +782,89 @@ function toggleWorker(wid,v){
   saveDB(); renderAttList();
 }
 function openAttDetail(wid){
-  const w=DB.workers.find(x=>String(x.id)===String(wid));
-  if(!w){ toast('Worker not found — try refreshing'); return; }
-  const a=getWorkerAtt(currentProjId,String(wid));
-  attDetailWorkerId=String(wid);
+  wid=String(wid);
+  const w=DB.workers.find(x=>String(x.id)===wid);
+  if(!w){ toast('Worker not found'); return; }
+  const a=getWorkerAtt(currentProjId,wid);
+  attDetailWorkerId=wid;
   document.getElementById('ad-name').textContent=w.name;
   const wages=calcWages(w,a);
-  // paid status: null = not set (treat as unpaid), number = amount paid
-  const isPaid = a.paid!=null && a.paid>0;
-  const paidAmt = a.paid!=null ? a.paid : 0;
-  document.getElementById('ad-body').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div class="input-group"><label>Days worked</label><input class="input-field" id="ad-days" type="number" min="1" max="31" value="${a.days||1}"></div>
-      <div class="input-group"><label>OT hours</label><input class="input-field" id="ad-ot" type="number" min="0" step="0.5" value="${a.ot||0}"></div>
-    </div>
-    <div style="background:var(--green4);border-radius:var(--radius);padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:13px;color:var(--muted)">Total wages</span>
-      <span id="ad-wages" style="font-size:18px;font-weight:700;color:var(--green2);font-family:'DM Mono',monospace">${fmtNum(wages)} RWF</span>
-    </div>
-    <div class="input-group" style="margin-bottom:6px"><label>Payment status</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button id="btn-unpaid" onclick="setPayStatus('unpaid')" style="padding:12px;border-radius:var(--radius-sm);border:2px solid ${!isPaid?'var(--red)':'var(--border)'};background:${!isPaid?'var(--red2)':'var(--surface)'};color:${!isPaid?'var(--red)':'var(--muted)'};font-size:14px;font-weight:600;cursor:pointer;">✗ Unpaid</button>
-        <button id="btn-paid" onclick="setPayStatus('paid')" style="padding:12px;border-radius:var(--radius-sm);border:2px solid ${isPaid?'var(--green2)':'var(--border)'};background:${isPaid?'var(--green4)':'var(--surface)'};color:${isPaid?'var(--green2)':'var(--muted)'};font-size:14px;font-weight:600;cursor:pointer;">✓ Paid</button>
-      </div>
-    </div>
-    <div id="paid-amount-row" class="input-group" style="display:${isPaid?'block':'none'}">
-      <label>Amount paid (RWF)</label>
-      <input class="input-field" id="ad-paid" type="number" min="0" value="${isPaid?paidAmt:wages}" placeholder="Enter amount paid">
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">Leave as total wages if fully paid via MoMo</div>
-    </div>
-    <div class="input-group"><label>Alt. MoMo name</label><input class="input-field" id="ad-altmomo" value="${a.altmomo||w.altmomo||'N/A'}"></div>
-    <div class="kv-row"><span class="kv-key">MoMo number</span><span class="kv-val" style="font-family:'DM Mono',monospace">${w.momo}</span></div>`;
-  // live wage calc
-  const upd=()=>{
-    const days=Number(document.getElementById('ad-days').value)||1;
-    const ot=Number(document.getElementById('ad-ot').value)||0;
-    const w2=calcWages({fee:w.fee,ot_rate:w.ot_rate},{days,ot});
-    document.getElementById('ad-wages').textContent=fmtNum(days*w.fee+ot*w.ot_rate)+' RWF';
-    const paidInput=document.getElementById('ad-paid');
-    if(paidInput) paidInput.value=days*w.fee+ot*w.ot_rate;
-  };
-  setTimeout(()=>{ document.getElementById('ad-days').oninput=upd; document.getElementById('ad-ot').oninput=upd; },50);
+  const isPaid=a.paid!=null&&Number(a.paid)>0;
+  const paidAmt=isPaid?Number(a.paid):wages;
+  // Build modal with DOM methods to avoid any quote/encoding issues
+  const body=document.getElementById('ad-body');
+  body.innerHTML='';
+  // Days + OT row
+  const g=document.createElement('div');
+  g.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px';
+  ['Days worked|ad-days|number|1|31|'+(a.days||1),
+   'OT hours|ad-ot|number|0|99|'+(a.ot||0)].forEach(function(s){
+    const parts=s.split('|');
+    const d=document.createElement('div'); d.className='input-group';
+    const l=document.createElement('label'); l.textContent=parts[0];
+    const i=document.createElement('input'); i.className='input-field'; i.id=parts[1]; i.type=parts[2]; i.min=parts[3]; i.max=parts[4]; i.value=parts[5]; i.step=parts[1]==='ad-ot'?'0.5':'1';
+    d.appendChild(l); d.appendChild(i); g.appendChild(d);
+  });
+  body.appendChild(g);
+  // Wages display
+  const wb=document.createElement('div');
+  wb.style.cssText='background:#e8f5e8;border-radius:12px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center';
+  const wl=document.createElement('span'); wl.style.cssText='font-size:13px;color:#666'; wl.textContent='Total wages';
+  const wv=document.createElement('span'); wv.id='ad-wages'; wv.style.cssText='font-size:18px;font-weight:700;color:#2a7a2a;font-family:monospace'; wv.textContent=fmtNum(wages)+' RWF';
+  wb.appendChild(wl); wb.appendChild(wv); body.appendChild(wb);
+  // Payment status
+  const sl=document.createElement('label'); sl.textContent='Payment status'; sl.style.cssText='font-size:12px;font-weight:600;color:#666;display:block;margin-bottom:8px';
+  body.appendChild(sl);
+  const bg=document.createElement('div'); bg.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px';
+  const bu=document.createElement('button'); bu.id='btn-unpaid'; bu.type='button'; bu.textContent='Unpaid';
+  const bp=document.createElement('button'); bp.id='btn-paid'; bu.type='button'; bp.textContent='Paid';
+  function styleButtons(paid){
+    bu.style.cssText='padding:12px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%;border:2px solid '+(paid?'#ddd':'#cc2222')+';background:'+(paid?'#fff':'#fce8e8')+';color:'+(paid?'#999':'#cc2222');
+    bp.style.cssText='padding:12px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%;border:2px solid '+(paid?'#2a7a2a':'#ddd')+';background:'+(paid?'#e8f5e8':'#fff')+';color:'+(paid?'#2a7a2a':'#999');
+  }
+  styleButtons(isPaid);
+  bu.addEventListener('click',function(){ styleButtons(false); pr.style.display='none'; });
+  bp.addEventListener('click',function(){ styleButtons(true); pr.style.display='block'; });
+  bg.appendChild(bu); bg.appendChild(bp); body.appendChild(bg);
+  // Paid amount
+  const pr=document.createElement('div'); pr.id='paid-amount-row'; pr.className='input-group'; pr.style.cssText='margin-bottom:14px;display:'+(isPaid?'block':'none');
+  const pl=document.createElement('label'); pl.textContent='Amount paid (RWF)';
+  const pi=document.createElement('input'); pi.className='input-field'; pi.id='ad-paid'; pi.type='number'; pi.min='0'; pi.value=paidAmt;
+  const ph=document.createElement('div'); ph.style.cssText='font-size:11px;color:#999;margin-top:4px'; ph.textContent='Enter exact MoMo amount sent';
+  pr.appendChild(pl); pr.appendChild(pi); pr.appendChild(ph); body.appendChild(pr);
+  // Alt MoMo
+  const ad=document.createElement('div'); ad.className='input-group';
+  const al=document.createElement('label'); al.textContent='Alt. MoMo name';
+  const ai=document.createElement('input'); ai.className='input-field'; ai.id='ad-altmomo'; ai.value=a.altmomo||w.altmomo||'N/A';
+  ad.appendChild(al); ad.appendChild(ai); body.appendChild(ad);
+  // MoMo display
+  const mr=document.createElement('div'); mr.className='kv-row';
+  const mk=document.createElement('span'); mk.className='kv-key'; mk.textContent='MoMo number';
+  const mv=document.createElement('span'); mv.className='kv-val'; mv.style.fontFamily='monospace'; mv.textContent=w.momo;
+  mr.appendChild(mk); mr.appendChild(mv); body.appendChild(mr);
+  // Live wage update
+  function upd(){
+    const d=Number(document.getElementById('ad-days').value)||1;
+    const o=Number(document.getElementById('ad-ot').value)||0;
+    const t=d*w.fee+o*w.ot_rate;
+    wv.textContent=fmtNum(t)+' RWF';
+    pi.value=t;
+  }
+  document.getElementById('ad-days').addEventListener('input',upd);
+  document.getElementById('ad-ot').addEventListener('input',upd);
   showModal('modal-att-detail');
 }
-function setPayStatus(status){
-  const paidRow=document.getElementById('paid-amount-row');
-  const btnPaid=document.getElementById('btn-paid');
-  const btnUnpaid=document.getElementById('btn-unpaid');
-  if(status==='paid'){
-    paidRow.style.display='block';
-    btnPaid.style.border='2px solid var(--green2)'; btnPaid.style.background='var(--green4)'; btnPaid.style.color='var(--green2)';
-    btnUnpaid.style.border='2px solid var(--border)'; btnUnpaid.style.background='var(--surface)'; btnUnpaid.style.color='var(--muted)';
-  } else {
-    paidRow.style.display='none';
-    btnUnpaid.style.border='2px solid var(--red)'; btnUnpaid.style.background='var(--red2)'; btnUnpaid.style.color='var(--red)';
-    btnPaid.style.border='2px solid var(--border)'; btnPaid.style.background='var(--surface)'; btnPaid.style.color='var(--muted)';
-  }
-}
 function saveAttDetail(){
-  attDetailWorkerId=String(attDetailWorkerId);
   const a=getWorkerAtt(currentProjId,attDetailWorkerId);
   const w=DB.workers.find(x=>String(x.id)===attDetailWorkerId);
+  if(!w){ toast('Error saving'); return; }
   a.days=Number(document.getElementById('ad-days').value)||1;
   a.ot=Number(document.getElementById('ad-ot').value)||0;
-  const wages=calcWages(w,a);
-  // Check which payment status is active
-  const btnPaid=document.getElementById('btn-paid');
-  const isPaid = btnPaid && btnPaid.style.color.includes('green') || btnPaid.style.border.includes('green2') || btnPaid.style.background!='var(--surface)';
-  const paidInput=document.getElementById('ad-paid');
-  if(paidInput && paidInput.closest('#paid-amount-row') && document.getElementById('paid-amount-row').style.display!=='none'){
-    a.paid=Number(paidInput.value)||wages;
-  } else {
-    a.paid=0;
-  }
+  const pr=document.getElementById('paid-amount-row');
+  const pi=document.getElementById('ad-paid');
+  a.paid=(pr&&pr.style.display!=='none'&&pi)?Number(pi.value)||calcWages(w,a):0;
   a.altmomo=document.getElementById('ad-altmomo').value;
-  saveDB(); closeModal('modal-att-detail'); renderAttList(); toast('Saved ✓');
+  saveDB(); closeModal('modal-att-detail'); renderAttList(); toast('Saved');
 }
 function markAllVisible(){ getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ const a=getWorkerAtt(currentProjId,String(w.id)); a.present=true; if(!a.days)a.days=1; }); saveDB(); renderAttList(); toast('All marked present'); }
 function clearVisible(){ if(!confirm('Clear attendance for visible workers?'))return; getFilteredWorkers(attCatFilter,'att-search').forEach(w=>{ DB.attendance[currentProjId][String(w.id)]={present:false,days:1,ot:0,paid:null,altmomo:''}; }); saveDB(); renderAttList(); }
@@ -1029,7 +1000,6 @@ function renderPeriodDetail(){
       </div>`;}).join('')}
     <div style="height:14px"></div>
     <button class="btn btn-orange" onclick="exportCurrentPeriod()">⬇ Export Excel (.xlsx)</button>
-    <button class="btn btn-primary" style="margin-top:8px;background:#0f9d58" onclick="syncPeriodToSheets('${p.id}')">☁ Sync to Google Sheets</button>
     ${currentRole==='admin'?`<button class="btn btn-ghost" style="width:100%;margin-top:8px;color:var(--red);border-color:var(--red)" onclick="deletePeriod('${p.id}')">Delete period</button>`:''}
     <div style="height:20px"></div>`;
 }
@@ -1068,37 +1038,12 @@ function renderPayrollList(){
 //  SETTINGS
 // ═══════════════════════════════════════════════════
 function renderSettings(){
-  const sheetsCfg = DB.settings.sheetsWebhook||'';
-  // Show Firebase connection status
-  setTimeout(()=>{
-    const card = document.getElementById('firebase-status-card');
-    const txt = document.getElementById('firebase-status-text');
-    if (!card || !txt) return;
-    if (firebaseReady) {
-      card.style.borderLeftColor = '#0f9d58';
-      txt.innerHTML = '<span style="color:#0f9d58;font-weight:700">🟢 Connected</span> — data syncs instantly across all your devices.';
-    } else {
-      card.style.borderLeftColor = '#e8a020';
-      txt.innerHTML = '<span style="color:#e8a020;font-weight:700">🟡 Not configured</span> — add your Firebase config in the HTML file to enable cross-device sync. Data is saved locally for now.';
-    }
-  }, 100);
+  const sheetsCfg=DB.settings.sheetsWebhook||'';
   document.getElementById('settings-content').innerHTML=`
-    <div class="sec-lbl">🔥 Firebase Sync Status</div>
-    <div class="card" id="firebase-status-card" style="border-left:3px solid #ccc">
-      <div id="firebase-status-text" style="font-size:13px;color:var(--muted)">Checking connection…</div>
-    </div>
-    <div class="sec-lbl">☁ Google Sheets Sync</div>
-    <div class="card" style="border-left:3px solid #0f9d58">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">Paste your Apps Script Web App URL below. Once set, use <b>☁ Sync to Google Sheets</b> on any period to push payroll data to your sheet instantly.</div>
+    <div class="sec-lbl">Google Sheets Sync</div>
+    <div class="card" style="border-left:3px solid #0f9d58;margin-bottom:12px">
       <div class="input-group"><label>Apps Script Webhook URL</label><input class="input-field" id="s-webhook" placeholder="https://script.google.com/macros/s/.../exec" value="${sheetsCfg}"></div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.7">
-        <b>How to get the URL:</b><br>
-        1. Open your Google Sheet → Extensions → Apps Script<br>
-        2. Paste the Apps Script code → Save<br>
-        3. Deploy → New Deployment → Web App<br>
-        4. Set access: <b>Anyone</b> → Deploy → Copy URL<br>
-        5. Paste URL above → Save Settings
-      </div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.7">Set this to push payroll to Google Sheets from any period.</div>
     </div>
     <div class="sec-lbl">Company</div>
     <div class="card">
@@ -1123,7 +1068,7 @@ function renderSettings(){
 function addApprover(){ DB.settings.approvers.push('Name'); renderSettings(); }
 function removeApprover(i){ DB.settings.approvers.splice(i,1); renderSettings(); }
 function saveSettings(){
-  DB.settings.sheetsWebhook = document.getElementById('s-webhook').value.trim();
+  DB.settings.sheetsWebhook=document.getElementById('s-webhook')?.value?.trim()||'';
   DB.settings.company=document.getElementById('s-company').value;
   DB.settings.prepared=document.getElementById('s-prepared').value;
   if(currentRole==='admin'){
@@ -1212,83 +1157,18 @@ function _buildXLSX(p,present,pa){
 }
 
 // ═══════════════════════════════════════════════════
-//  GOOGLE SHEETS SYNC
-// ═══════════════════════════════════════════════════
-async function syncPeriodToSheets(pid) {
-  const webhookUrl = DB.settings.sheetsWebhook;
-  if (!webhookUrl) {
-    toast('No webhook URL — add it in Settings ⚙');
-    navigate('settings');
-    return;
-  }
-  const p = DB.projects.find(x => x.id === pid);
-  if (!p) { toast('Period not found'); return; }
-  const pa = getProjAtt(p.id);
-  const present = DB.workers.filter(w => w.status === 'active' && pa[w.id] && pa[w.id].present);
-  if (!present.length) { toast('No attendance recorded for this period'); return; }
-
-  toast('Syncing to Google Sheets…');
-
-  let gt = 0, gp = 0;
-  const rows = present.map((w, i) => {
-    const a = pa[w.id];
-    const wages = calcWages(w, a);
-    const paid = a.paid != null ? a.paid : wages;
-    const unpaid = Math.max(0, wages - paid);
-    gt += wages; gp += paid;
-    return {
-      no: i + 1,
-      name: w.name,
-      category: w.cat,
-      dailyFee: w.fee,
-      otRate: w.ot_rate,
-      momo: w.momo,
-      altMomo: a.altmomo || w.altmomo || 'N/A',
-      daysWorked: a.days || 1,
-      totalOT: a.ot || 0,
-      totalWages: wages,
-      paidAmount: paid,
-      unpaidAmount: unpaid
-    };
-  });
-
-  const payload = {
-    periodName: p.name,
-    project: p.project || '',
-    startDate: p.startDate || '',
-    endDate: p.endDate || '',
-    preparedBy: p.preparedBy || DB.settings.prepared,
-    company: DB.settings.company,
-    approvers: DB.settings.approvers,
-    syncedAt: new Date().toLocaleString('en-RW', { timeZone: 'Africa/Kigali' }),
-    totalWages: gt,
-    totalPaid: gp,
-    totalUnpaid: Math.max(0, gt - gp),
-    workerCount: present.length,
-    rows
-  };
-
-  try {
-    // Apps Script requires no-cors; data still writes successfully
-    await fetch(webhookUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    });
-    toast('Synced to Google Sheets ✓');
-  } catch (e) {
-    toast('Sync failed — check webhook URL in Settings');
-  }
-}
-
-// ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
-(async()=>{
-  initFirebase();
-  await loadDB();
-  showScreen('pin');
+(function(){
+  function start(){
+    initFirebase();
+    loadDB().then(function(){ showScreen('pin'); }).catch(function(){
+      DB.workers=DEFAULT_WORKERS.map(function(x){return Object.assign({},x);});
+      showScreen('pin');
+    });
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',start); }
+  else { start(); }
 })();
 </script>
 </body>
